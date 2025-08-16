@@ -1,42 +1,231 @@
-# Dependencies
+# ============================================
+# 🗃️ CACHE & TEMPORARY FILES
+# ============================================
+.cache/
+.eslintcache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Jest cache
+jest/
+.jest/
+
+# Prettier cache
+.prettier-cache
+
+# TypeScript incremental compilation
+.tscache/
+
+# ============================================
+# 📦 DEPENDENCIES
+# ============================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnp
+.pnp.js
 
-# Build outputs
+# Package manager lock files (optional - choose one)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============================================
+# 🏗️ BUILD OUTPUTS
+# ============================================
 dist/
+build/
+lib/compiled/
 *.tsbuildinfo
+scripts/verification-test/
 
-# IDE
+# n8n specific build outputs
+credentials/**/*.js
+nodes/**/*.js
+!**/*.d.ts
+
+# ============================================
+# 🔧 DEVELOPMENT TOOLS
+# ============================================
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS
+# Editor backup files
+*.bak
+*.tmp
+
+# ============================================
+# 🖥️ OPERATING SYSTEM
+# ============================================
+# macOS
 .DS_Store
-Thumbs.db
+.AppleDouble
+.LSOverride
+._*
 
-# Logs
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+
+# Linux
+*~
+
+# ============================================
+# 📊 LOGS & MONITORING
+# ============================================
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Environment variables
+# Runtime logs
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# 🔐 ENVIRONMENT & SECRETS
+# ============================================
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
 
-# Oracle specific
+# Oracle connection files (sensitive)
+tnsnames.ora
+sqlnet.ora
+wallet/
+*.p12
+*.jks
+
+# ============================================
+# ☕ ORACLE JDBC DRIVERS
+# ============================================
+# JAR files (download required)
 lib/ojdbc*.jar
 lib/ucp.jar
 lib/orai18n.jar
+lib/xdb6.jar
+lib/xmlparserv2.jar
 
-# Test coverage
+# Keep lib directory structure but ignore binaries
+lib/*
+!lib/.gitkeep
+!lib/README.md
+
+# ============================================
+# 🧪 TESTING & COVERAGE
+# ============================================
 coverage/
+.nyc_output/
+*.lcov
 
-# Temporary files
+# Test results
+test-results/
+junit.xml
+
+# Jest
+__tests__/coverage/
+jest_cache/
+
+# ============================================
+# 🚀 CI/CD & DEPLOYMENT
+# ============================================
+# Semantic release
+.semantic-release/
+
+# GitHub Actions artifacts
+.github/workflows/cache/
+
+# Docker
+.dockerignore
+Dockerfile.dev
+
+# ============================================
+# 🎯 PROJECT SPECIFIC
+# ============================================
+# n8n development
+.n8n/
+n8n-data/
+
+# Oracle SQL Developer
+sqldeveloper/
+
+# Database dumps and backups
+*.sql.backup
+*.dmp
+dumps/
+
+# Performance benchmarks
+benchmark-results/
+perf/
+
+# Documentation generated files
+docs/api/
+docs/coverage/
+
+# ============================================
+# 📱 MOBILE & ADDITIONAL
+# ============================================
+# React Native (if applicable)
+.expo/
+.expo-shared/
+
+# Yarn v2+ (if using)
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ============================================
+# 🔄 BACKUP & TEMPORARY
+# ============================================
+# Backup files
+*.backup
+*.bak
+*.tmp
+*.temp
+
+# OS temporary
 tmp/
 temp/
+
+# Archive files
+*.tar
+*.tar.gz
+*.zip
+*.rar
+
+# ============================================
+# 📋 KEEP THESE FILES (NEGATED)
+# ============================================
+# Important config files to keep
+!.github/
+!.husky/
+!scripts/
+!docs/
+!README.md
+!LICENSE.md
+!CHANGELOG.md
+
+# Keep essential lib files
+!lib/README.md
+!lib/.gitkeep
+
+# Keep TypeScript config
+!tsconfig*.json
+!eslint.config.*
+!prettier.config.*
