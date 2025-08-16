@@ -1,0 +1,190 @@
+{
+  "name": "n8n-nodes-oracle-jdbc-advanced",
+  "version": "4.0.0",
+  "description": "Oracle Database nodes using pure JDBC driver - Zero Oracle Client dependencies. Enterprise-grade Oracle connectivity for n8n with connection pooling, transactions, and stored procedures.",
+  "keywords": [
+    "n8n-community-node-package",
+    "oracle",
+    "jdbc",
+    "database",
+    "java",
+    "sql",
+    "enterprise",
+    "connection-pool",
+    "transactions",
+    "stored-procedures",
+    "oracle-19c",
+    "oracle-21c",
+    "oracle-23c",
+    "autonomous-database"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced",
+  "author": {
+    "name": "Jônatas Meireles Sousa Vieira",
+    "email": "jonatas.mei@outlook.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced/issues"
+  },
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "lib",
+    "README.md",
+    "LICENSE.md",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.18.0",
+    "npm": ">=9.0.0",
+    "java": ">=11.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "packageManager": "npm@10.8.2",
+  "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "prebuild": "npm run clean && npm run setup:java",
+    "build": "tsc -p tsconfig.json && gulp build:complete",
+    "build:watch": "tsc -p tsconfig.json --watch",
+    "build:assets": "gulp build:assets",
+    "setup:java": "node scripts/setup-java.js",
+    "download:jdbc": "node scripts/download-jdbc.js",
+    "dev": "npm run build:watch",
+    "format": "prettier . --write --ignore-path .gitignore",
+    "format:check": "prettier . --check --ignore-path .gitignore",
+    "lint": "eslint . --ext .ts,.js --cache",
+    "lint:fix": "eslint . --ext .ts,.js --fix --cache",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch --passWithNoTests",
+    "test:coverage": "jest --coverage --passWithNoTests",
+    "test:jdbc": "node scripts/test-jdbc-connection.js",
+    "prepublishOnly": "npm run clean && npm run build && npm run lint && npm run test",
+    "prepare": "husky install",
+    "release": "semantic-release",
+    "validate": "npm run type-check && npm run lint && npm run test",
+    "dev:assets": "gulp watch",
+    "clean:dist": "gulp cleanup:dist"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "registry": "https://registry.npmjs.org/"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/OracleJdbc.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Oracle/OracleJdbcDatabase.node.js",
+      "dist/nodes/Oracle/OracleJdbcAdvanced.node.js"
+    ]
+  },
+  "dependencies": {
+    "java": "^0.12.2",
+    "node-java-bridge": "^2.4.1",
+    "uuid": "^9.0.1",
+    "sql-formatter": "^15.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^10.3.5",
+    "@semantic-release/npm": "^12.0.1",
+    "@stylistic/eslint-plugin-js": "^4.4.1",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.1",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "del": "^7.1.0",
+    "eslint": "^9.16.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "eslint-plugin-prettier": "^5.2.1",
+    "globals": "^16.3.0",
+    "gulp": "^5.0.0",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.2.10",
+    "n8n-workflow": "^1.82.0",
+    "prettier": "^3.3.3",
+    "prettier-plugin-organize-imports": "^3.2.4",
+    "rimraf": "^6.0.1",
+    "semantic-release": "^24.2.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": ">=1.0.0"
+  },
+  "optionalDependencies": {
+    "download": "^8.0.0",
+    "extract-zip": "^2.0.1"
+  },
+  "lint-staged": {
+    "*.{ts,js,json,md}": [
+      "prettier --write"
+    ],
+    "*.{ts,js}": [
+      "eslint --fix"
+    ]
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "nodes/**/*.ts",
+      "credentials/**/*.ts",
+      "!**/*.d.ts",
+      "!**/node_modules/**"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts",
+      "**/?(*.)+(spec|test).ts"
+    ]
+  },
+  "release": {
+    "branches": [
+      "main",
+      {
+        "name": "beta",
+        "prerelease": true
+      }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      "@semantic-release/github",
+      "@semantic-release/git"
+    ]
+  }
+}
