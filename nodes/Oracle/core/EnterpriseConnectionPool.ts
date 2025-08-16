@@ -1,11 +1,13 @@
-import { java } from 'java';
-import { OracleJdbcConfig, JdbcConnection } from '../types/JdbcTypes';
+import * as java from 'node-java-bridge';
+import { OracleJdbcConfig, JdbcConnection, QueryOptions } from '../types/JdbcTypes';
 import { AdvancedPoolConfiguration, buildAdvancedPoolConfig } from './AdvancedPoolConfig';
-import { ErrorHandler } from '../utils/ErrorHandler';
+import { ErrorHandler, ErrorContext } from '../utils/ErrorHandler';
+import { OracleJdbcDriver } from './OracleJdbcDriver';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface PoolStatistics {
   poolName: string;
+  poolId: string;
   totalConnections: number;
   availableConnections: number;
   borrowedConnections: number;
@@ -17,10 +19,40 @@ export interface PoolStatistics {
   connectionBorrowTime: number;
   cumulativeConnectionBorrowTime: number;
   cumulativeConnectionReturnTime: number;
+  
+  // Advanced metrics
+  averageConnectionBorrowTime: number;
+  maxConnectionBorrowTime: number;
+  connectionLeaks: number;
+  validationErrors: number;
+  racFailovers: number;
+  poolHealth: 'HEALTHY' | 'WARNING' | 'CRITICAL';
+  lastHealthCheck: Date;
 }
 
 export interface ConnectionLabel {
   [key: string]: string;
+}
+
+export interface RacFailoverEvent {
+  timestamp: Date;
+  fromNode: string;
+  toNode: string;
+  reason: string;
+  duration: number;
+}
+
+export interface EnterprisePoolHealth {
+  isHealthy: boolean;
+  score: number; // 0-100
+  issues: string[];
+  warnings: string[];
+  recommendations: string[];
+  racStatus?: {
+    activeNodes: number;
+    totalNodes: number;
+    recentFailovers: RacFailoverEvent[];
+  };
 }
 
 export class EnterpriseConnectionPool {
@@ -29,8 +61,17 @@ export class EnterpriseConnectionPool {
   private config: OracleJdbcConfig;
   private poolConfig: AdvancedPoolConfiguration;
   private isInitialized = false;
+  private isShuttingDown = false;
   private poolManager: any;
   private statsMonitor?: NodeJS.Timer;
+  
+  // Connection tracking
+  private activeConnections = new Map<string, { borrowed: Date; labels?: ConnectionLabel }>();
+  private statistics: PoolStatistics;
+  
+  // RAC support
+  private racFailoverEvents: RacFailoverEvent[] = [];
+  private lastFailoverCheck = new Date();
 
   constructor(config: OracleJdbcConfig, poolConfig: AdvancedPoolConfiguration = {}) {
     this.poolId = uuidv4();
@@ -44,8 +85,16 @@ export class EnterpriseConnectionPool {
       validateConnectionOnBorrow: true,
       maxConnectionReuseTime: 3600,
       connectionCreationRetryDelay: 10,
+      fastConnectionFailoverEnabled: true,
+      connectionRetryAttempts: 3,
+      connectionRetryDelayMs: 1000,
+      enableConnectionHealthCheck: true,
+      connectionTestQuery: 'SELECT 1 FROM dual',
+      statsIntervalSeconds: 60,
       ...poolConfig,
     };
+
+    this.initializeStatistics();
   }
 
   async initialize(): Promise<void> {
@@ -53,62 +102,97 @@ export class EnterpriseConnectionPool {
       return;
     }
 
-    try {
-      // Criar Universal Connection Pool Manager
-      this.poolManager = java.import('oracle.ucp.admin.UniversalConnectionPoolManagerImpl').getInstance();
-      
-      // Criar Pool Data Source
-      const poolDataSourceFactory = java.import('oracle.ucp.jdbc.PoolDataSourceFactory');
-      this.dataSource = await poolDataSourceFactory.getPoolDataSource();
+    const errorContext: ErrorContext = {
+      operation: 'initializeEnterprisePool',
+      poolId: this.poolId
+    };
 
-      // Configurar URL de conexão (RAC support)
+    try {
+      // Ensure Oracle driver is loaded
+      await OracleJdbcDriver.initialize();
+
+      // Create Universal Connection Pool Manager
+      const UniversalConnectionPoolManagerImpl = java.import('oracle.ucp.admin.UniversalConnectionPoolManagerImpl');
+      this.poolManager = await UniversalConnectionPoolManagerImpl.getInstance();
+
+      // Create Pool Data Source
+      const PoolDataSourceFactory = java.import('oracle.ucp.jdbc.PoolDataSourceFactory');
+      this.dataSource = await PoolDataSourceFactory.getPoolDataSource();
+
+      // Configure connection URL (with RAC support if enabled)
       const connectionUrl = this.buildAdvancedConnectionUrl();
       await this.dataSource.setURL(connectionUrl);
       await this.dataSource.setUser(this.config.username);
       await this.dataSource.setPassword(this.config.password);
 
-      // Aplicar configurações básicas do pool
+      // Apply basic pool configuration
       await this.applyBasicPoolConfiguration();
 
-      // Aplicar configurações avançadas
+      // Apply advanced configuration
       await this.applyAdvancedConfiguration();
 
-      // Configurar Oracle-specific properties
+      // Configure Oracle-specific properties
       await this.applyOracleSpecificProperties();
 
-      // Inicializar pool
-      await this.dataSource.setConnectionPoolName(`EnterprisePool_${this.poolId}`);
-      
-      // Registrar pool no manager
+      // Setup pool name
+      const poolName = `EnterprisePool_${this.poolId}`;
+      await this.dataSource.setConnectionPoolName(poolName);
+
+      // Register pool with manager
       await this.poolManager.createConnectionPool(this.dataSource);
 
-      // Iniciar monitoramento se habilitado
+      // Start monitoring if enabled
       if (this.poolConfig.statsIntervalSeconds) {
         this.startStatsMonitoring();
       }
 
       this.isInitialized = true;
+
     } catch (error) {
-      throw ErrorHandler.handleJdbcError(error, 'Failed to initialize enterprise connection pool');
+      throw ErrorHandler.handleJdbcError(error, 'Failed to initialize enterprise connection pool', errorContext);
     }
   }
 
-  async getConnection(connectionLabels?: ConnectionLabel): Promise<JdbcConnection> {
+  async getConnection(connectionLabels?: ConnectionLabel, options: QueryOptions = {}): Promise<JdbcConnection> {
     await this.initialize();
+
+    if (this.isShuttingDown) {
+      throw new Error('Connection pool is shutting down');
+    }
+
+    const connectionId = uuidv4();
+    const errorContext: ErrorContext = {
+      operation: 'getEnterpriseConnection',
+      poolId: this.poolId,
+      connectionId
+    };
+
+    const startTime = Date.now();
 
     try {
       let connection;
-      
+
+      // Apply timeout if specified
+      let originalTimeout;
+      if (options.timeout) {
+        originalTimeout = await this.dataSource.getConnectionWaitTimeout();
+        await this.dataSource.setConnectionWaitTimeout(options.timeout);
+      }
+
       if (connectionLabels && this.poolConfig.enableConnectionLabeling) {
-        // Usar connection labeling
-        const labelBuilder = java.import('oracle.ucp.jdbc.LabelableConnection');
+        // Use connection labeling for session affinity
         connection = await this.dataSource.getConnection(connectionLabels);
       } else {
         connection = await this.dataSource.getConnection();
       }
 
-      return {
-        id: uuidv4(),
+      // Restore original timeout
+      if (originalTimeout !== undefined) {
+        await this.dataSource.setConnectionWaitTimeout(originalTimeout);
+      }
+
+      const jdbcConnection: JdbcConnection = {
+        id: connectionId,
         connection,
         config: this.config,
         createdAt: new Date(),
@@ -117,8 +201,21 @@ export class EnterpriseConnectionPool {
         poolId: this.poolId,
         labels: connectionLabels,
       };
+
+      // Track active connection
+      this.activeConnections.set(connectionId, {
+        borrowed: new Date(),
+        labels: connectionLabels
+      });
+
+      // Update statistics
+      this.updateConnectionStatistics('borrowed', Date.now() - startTime);
+
+      return jdbcConnection;
+
     } catch (error) {
-      throw ErrorHandler.handleJdbcError(error, 'Failed to get connection from enterprise pool');
+      this.updateConnectionStatistics('failed');
+      throw ErrorHandler.handleJdbcError(error, 'Failed to get connection from enterprise pool', errorContext);
     }
   }
 
@@ -127,23 +224,32 @@ export class EnterpriseConnectionPool {
     retryDelayMs = 1000,
     connectionLabels?: ConnectionLabel
   ): Promise<JdbcConnection> {
-    let lastError;
+    let lastError: Error;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await this.getConnection(connectionLabels);
+
       } catch (error) {
-        lastError = error;
+        lastError = error as Error;
         
-        if (attempt < maxRetries) {
-          console.warn(`Connection attempt ${attempt} failed, retrying in ${retryDelayMs}ms...`);
+        // Check if error is retryable
+        if (attempt < maxRetries && ErrorHandler.isRetryableError(error)) {
+          console.warn(`Connection attempt ${attempt} failed, retrying in ${retryDelayMs}ms...`, {
+            error: error.message,
+            poolId: this.poolId,
+            attempt
+          });
+          
           await new Promise(resolve => setTimeout(resolve, retryDelayMs));
           retryDelayMs *= 1.5; // Exponential backoff
+        } else {
+          break;
         }
       }
     }
-    
-    throw lastError;
+
+    throw lastError!;
   }
 
   async borrowConnection(timeout?: number): Promise<JdbcConnection> {
@@ -152,9 +258,10 @@ export class EnterpriseConnectionPool {
     if (timeout) {
       await this.dataSource.setConnectionWaitTimeout(timeout);
     }
-    
+
     try {
       return await this.getConnection();
+      
     } finally {
       if (timeout && originalTimeout) {
         await this.dataSource.setConnectionWaitTimeout(originalTimeout);
@@ -163,47 +270,206 @@ export class EnterpriseConnectionPool {
   }
 
   async returnConnection(connection: JdbcConnection, labels?: ConnectionLabel): Promise<void> {
+    const errorContext: ErrorContext = {
+      operation: 'returnEnterpriseConnection',
+      poolId: this.poolId,
+      connectionId: connection.id
+    };
+
     try {
       if (labels && this.poolConfig.enableConnectionLabeling) {
-        // Apply labels before returning
+        // Apply labels before returning to pool
         const labelableConn = connection.connection;
-        for (const [key, value] of Object.entries(labels)) {
-          await labelableConn.applyConnectionLabel(key, value);
+        
+        try {
+          for (const [key, value] of Object.entries(labels)) {
+            await labelableConn.applyConnectionLabel(key, value);
+          }
+        } catch (labelError) {
+          console.warn('Failed to apply connection labels:', labelError);
         }
       }
-      
-      await connection.connection.close();
-      connection.isActive = false;
+
+      if (connection.connection && connection.isActive) {
+        await connection.connection.close();
+        connection.isActive = false;
+
+        // Remove from active connections tracking
+        this.activeConnections.delete(connection.id);
+
+        // Update statistics
+        this.updateConnectionStatistics('returned');
+      }
+
     } catch (error) {
-      throw ErrorHandler.handleJdbcError(error, 'Failed to return connection to pool');
+      throw ErrorHandler.handleJdbcError(error, 'Failed to return connection to enterprise pool', errorContext);
     }
   }
 
   async getPoolStatistics(): Promise<PoolStatistics> {
     if (!this.isInitialized) {
-      throw new Error('Pool not initialized');
+      return this.statistics;
     }
 
     try {
       const poolName = await this.dataSource.getConnectionPoolName();
       const ucpManager = await this.poolManager.getUniversalConnectionPool(poolName);
+
+      // Get basic UCP statistics
+      const totalConnections = await ucpManager.getTotalConnectionsCount();
+      const availableConnections = await ucpManager.getAvailableConnectionsCount();
+      const borrowedConnections = await ucpManager.getBorrowedConnectionsCount();
+      const peakConnections = await ucpManager.getPeakConnectionsCount();
+      const connectionsCreated = await ucpManager.getConnectionsCreatedCount();
+      const connectionsClosed = await ucpManager.getConnectionsClosedCount();
+      const failedConnections = await ucpManager.getFailedConnectionsCount();
+      const connectionWaitTime = await ucpManager.getCumulativeConnectionWaitTime();
+      const connectionBorrowTime = await ucpManager.getCumulativeConnectionBorrowTime();
+      const cumulativeConnectionBorrowTime = await ucpManager.getCumulativeConnectionBorrowTime();
+      const cumulativeConnectionReturnTime = await ucpManager.getCumulativeConnectionReturnTime();
+
+      // Calculate advanced metrics
+      const connectionLeaks = this.detectConnectionLeaks();
+      const racFailovers = this.racFailoverEvents.length;
+
+      // Calculate average borrow time
+      const averageConnectionBorrowTime = connectionsCreated > 0 
+        ? cumulativeConnectionBorrowTime / connectionsCreated 
+        : 0;
+
+      // Determine pool health
+      let poolHealth: 'HEALTHY' | 'WARNING' | 'CRITICAL' = 'HEALTHY';
       
-      return {
+      if (availableConnections === 0 && borrowedConnections >= totalConnections) {
+        poolHealth = 'CRITICAL';
+      } else if (connectionLeaks > 0 || availableConnections < totalConnections * 0.2) {
+        poolHealth = 'WARNING';
+      }
+
+      this.statistics = {
+        ...this.statistics,
         poolName,
-        totalConnections: await ucpManager.getTotalConnectionsCount(),
-        availableConnections: await ucpManager.getAvailableConnectionsCount(),
-        borrowedConnections: await ucpManager.getBorrowedConnectionsCount(),
-        peakConnections: await ucpManager.getPeakConnectionsCount(),
-        connectionsCreated: await ucpManager.getConnectionsCreatedCount(),
-        connectionsClosed: await ucpManager.getConnectionsClosedCount(),
-        failedConnections: await ucpManager.getFailedConnectionsCount(),
-        connectionWaitTime: await ucpManager.getCumulativeConnectionWaitTime(),
-        connectionBorrowTime: await ucpManager.getCumulativeConnectionBorrowTime(),
-        cumulativeConnectionBorrowTime: await ucpManager.getCumulativeConnectionBorrowTime(),
-        cumulativeConnectionReturnTime: await ucpManager.getCumulativeConnectionReturnTime(),
+        totalConnections,
+        availableConnections,
+        borrowedConnections,
+        peakConnections,
+        connectionsCreated,
+        connectionsClosed,
+        failedConnections,
+        connectionWaitTime,
+        connectionBorrowTime,
+        cumulativeConnectionBorrowTime,
+        cumulativeConnectionReturnTime,
+        averageConnectionBorrowTime,
+        connectionLeaks,
+        racFailovers,
+        poolHealth,
+        lastHealthCheck: new Date()
       };
+
+      return this.statistics;
+
     } catch (error) {
-      throw ErrorHandler.handleJdbcError(error, 'Failed to get pool statistics');
+      throw ErrorHandler.handleJdbcError(error, 'Failed to get enterprise pool statistics');
+    }
+  }
+
+  async performHealthCheck(): Promise<EnterprisePoolHealth> {
+    const issues: string[] = [];
+    const warnings: string[] = [];
+    const recommendations: string[] = [];
+    let score = 100;
+
+    try {
+      const stats = await this.getPoolStatistics();
+
+      // Check connection availability
+      if (stats.availableConnections === 0) {
+        if (stats.borrowedConnections >= stats.totalConnections) {
+          issues.push('Pool exhausted - no available connections');
+          score -= 30;
+          recommendations.push('Consider increasing maxPoolSize');
+        }
+      }
+
+      // Check for connection leaks
+      if (stats.connectionLeaks > 0) {
+        issues.push(`${stats.connectionLeaks} potential connection leaks detected`);
+        score -= 20;
+        recommendations.push('Review connection usage and ensure proper closing');
+      }
+
+      // Check pool utilization
+      const utilizationPercent = (stats.borrowedConnections / stats.totalConnections) * 100;
+      if (utilizationPercent > 90) {
+        warnings.push(`High pool utilization: ${utilizationPercent.toFixed(1)}%`);
+        score -= 10;
+        recommendations.push('Consider increasing pool size for better performance');
+      }
+
+      // Check validation errors
+      if (stats.validationErrors > 0) {
+        warnings.push(`${stats.validationErrors} validation errors detected`);
+        score -= 10;
+        recommendations.push('Check database connectivity and validation query');
+      }
+
+      // Check average connection borrow time
+      if (stats.averageConnectionBorrowTime > 5000) { // > 5 seconds
+        warnings.push(`High average connection borrow time: ${stats.averageConnectionBorrowTime.toFixed(0)}ms`);
+        score -= 10;
+        recommendations.push('Consider tuning connection pool parameters');
+      }
+
+      // RAC-specific health checks
+      let racStatus;
+      if (this.poolConfig.enableRacSupport && this.poolConfig.racNodes) {
+        const activeNodes = await this.checkRacNodeHealth();
+        const totalNodes = this.poolConfig.racNodes.length;
+        const recentFailovers = this.getRecentFailoverEvents();
+
+        racStatus = {
+          activeNodes,
+          totalNodes,
+          recentFailovers
+        };
+
+        if (activeNodes < totalNodes) {
+          if (activeNodes === 0) {
+            issues.push('All RAC nodes are down');
+            score -= 50;
+          } else {
+            warnings.push(`${totalNodes - activeNodes} RAC node(s) down`);
+            score -= 15;
+            recommendations.push('Check RAC node connectivity and health');
+          }
+        }
+
+        if (recentFailovers.length > 5) {
+          warnings.push(`${recentFailovers.length} recent RAC failovers detected`);
+          score -= 10;
+          recommendations.push('Investigate RAC stability issues');
+        }
+      }
+
+      return {
+        isHealthy: issues.length === 0,
+        score: Math.max(0, score),
+        issues,
+        warnings,
+        recommendations,
+        racStatus
+      };
+
+    } catch (error) {
+      issues.push(`Health check failed: ${error.message}`);
+      return {
+        isHealthy: false,
+        score: 0,
+        issues,
+        warnings,
+        recommendations
+      };
     }
   }
 
@@ -216,6 +482,7 @@ export class EnterpriseConnectionPool {
       const poolName = await this.dataSource.getConnectionPoolName();
       const ucpManager = await this.poolManager.getUniversalConnectionPool(poolName);
       await ucpManager.refreshConnections();
+
     } catch (error) {
       throw ErrorHandler.handleJdbcError(error, 'Failed to refresh pool connections');
     }
@@ -230,6 +497,7 @@ export class EnterpriseConnectionPool {
       const poolName = await this.dataSource.getConnectionPoolName();
       const ucpManager = await this.poolManager.getUniversalConnectionPool(poolName);
       await ucpManager.purgeConnections();
+
     } catch (error) {
       throw ErrorHandler.handleJdbcError(error, 'Failed to purge pool connections');
     }
@@ -243,6 +511,7 @@ export class EnterpriseConnectionPool {
     try {
       const poolName = await this.dataSource.getConnectionPoolName();
       await this.poolManager.startConnectionPool(poolName);
+
     } catch (error) {
       throw ErrorHandler.handleJdbcError(error, 'Failed to start connection pool');
     }
@@ -256,57 +525,62 @@ export class EnterpriseConnectionPool {
     try {
       const poolName = await this.dataSource.getConnectionPoolName();
       await this.poolManager.stopConnectionPool(poolName);
+
     } catch (error) {
       throw ErrorHandler.handleJdbcError(error, 'Failed to stop connection pool');
     }
   }
 
   async close(): Promise<void> {
-    if (this.statsMonitor) {
-      clearInterval(this.statsMonitor);
+    if (!this.isInitialized) {
+      return;
     }
 
-    if (this.dataSource && this.isInitialized) {
-      try {
-        await this.stopConnectionPool();
-        const poolName = await this.dataSource.getConnectionPoolName();
-        await this.poolManager.destroyConnectionPool(poolName);
-        this.isInitialized = false;
-      } catch (error) {
-        throw ErrorHandler.handleJdbcError(error, 'Failed to close enterprise connection pool');
+    this.isShuttingDown = true;
+
+    try {
+      // Stop monitoring
+      if (this.statsMonitor) {
+        clearInterval(this.statsMonitor);
+        this.statsMonitor = undefined;
       }
+
+      // Stop and destroy pool
+      await this.stopConnectionPool();
+      
+      const poolName = await this.dataSource.getConnectionPoolName();
+      await this.poolManager.destroyConnectionPool(poolName);
+
+      this.isInitialized = false;
+      this.isShuttingDown = false;
+
+    } catch (error) {
+      throw ErrorHandler.handleJdbcError(error, 'Failed to close enterprise connection pool');
     }
   }
 
+  // Private configuration methods
   private buildAdvancedConnectionUrl(): string {
     if (this.poolConfig.enableRacSupport && this.poolConfig.racNodes) {
       return this.buildRacConnectionUrl();
     }
 
     // Standard connection URL
-    switch (this.config.connectionType) {
-      case 'service':
-        return `jdbc:oracle:thin:@${this.config.host}:${this.config.port}/${this.config.serviceName}`;
-      case 'sid':
-        return `jdbc:oracle:thin:@${this.config.host}:${this.config.port}:${this.config.sid}`;
-      case 'tns':
-        return `jdbc:oracle:thin:@${this.config.tnsString}`;
-      default:
-        throw new Error(`Unsupported connection type: ${this.config.connectionType}`);
-    }
+    return OracleJdbcDriver.buildConnectionString(this.config);
   }
 
   private buildRacConnectionUrl(): string {
     const racNodes = this.poolConfig.racNodes!;
     const sortedNodes = racNodes.sort((a, b) => (a.priority || 999) - (b.priority || 999));
     
-    const addressList = sortedNodes.map(node => 
+    const addressList = sortedNodes.map(node =>
       `(ADDRESS=(PROTOCOL=TCP)(HOST=${node.host})(PORT=${node.port}))`
     ).join('');
 
     const serviceName = this.config.serviceName || this.config.sid;
-    
-    return `jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=${addressList})(CONNECT_DATA=(SERVICE_NAME=${serviceName})(FAILOVER_MODE=(TYPE=${this.poolConfig.oracleRacFailoverType || 'SELECT'})(METHOD=BASIC)(RETRIES=3)(DELAY=5))))`;
+    const failoverType = this.poolConfig.oracleRacFailoverType || 'SELECT';
+
+    return `jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=${addressList})(CONNECT_DATA=(SERVICE_NAME=${serviceName})(FAILOVER_MODE=(TYPE=${failoverType})(METHOD=BASIC)(RETRIES=3)(DELAY=5))))`;
   }
 
   private async applyBasicPoolConfiguration(): Promise<void> {
@@ -332,16 +606,21 @@ export class EnterpriseConnectionPool {
 
   private async applyOracleSpecificProperties(): Promise<void> {
     // Oracle JDBC optimizations
-    await this.dataSource.setConnectionProperty('oracle.jdbc.implicitStatementCacheSize', 
+    await this.dataSource.setConnectionProperty('oracle.jdbc.implicitStatementCacheSize',
       (this.poolConfig.maxStatements || 50).toString());
     await this.dataSource.setConnectionProperty('oracle.jdbc.autoCommitSpecCompliant', 'false');
     await this.dataSource.setConnectionProperty('oracle.net.keepAlive', 'true');
     await this.dataSource.setConnectionProperty('oracle.jdbc.ReadTimeout', '30000');
-    
+
     // Performance tuning
     await this.dataSource.setConnectionProperty('oracle.jdbc.defaultRowPrefetch', '20');
     await this.dataSource.setConnectionProperty('oracle.jdbc.defaultBatchValue', '15');
-    
+
+    // Fast Connection Failover
+    if (this.poolConfig.fastConnectionFailoverEnabled) {
+      await this.dataSource.setFastConnectionFailoverEnabled(true);
+    }
+
     // Connection labeling
     if (this.poolConfig.enableConnectionLabeling) {
       await this.dataSource.setConnectionProperty('oracle.ucp.connectionLabelingHighCost', '10');
@@ -349,21 +628,126 @@ export class EnterpriseConnectionPool {
   }
 
   private startStatsMonitoring(): void {
+    const intervalMs = this.poolConfig.statsIntervalSeconds! * 1000;
+
     this.statsMonitor = setInterval(async () => {
       try {
         const stats = await this.getPoolStatistics();
-        console.log(`Pool ${stats.poolName} Stats:`, {
-          total: stats.totalConnections,
-          available: stats.availableConnections,
-          borrowed: stats.borrowedConnections,
-          peak: stats.peakConnections,
-        });
+
+        // Log critical issues
+        if (stats.poolHealth === 'CRITICAL') {
+          console.error(`CRITICAL: Enterprise pool ${stats.poolName} is unhealthy:`, {
+            available: stats.availableConnections,
+            borrowed: stats.borrowedConnections,
+            total: stats.totalConnections,
+            leaks: stats.connectionLeaks
+          });
+        }
+
+        // Log connection leaks
+        if (stats.connectionLeaks > 0) {
+          console.warn(`Enterprise pool ${stats.poolName} has ${stats.connectionLeaks} potential connection leaks`);
+        }
+
+        // Log RAC failovers
+        if (stats.racFailovers > 0) {
+          console.info(`RAC failovers detected: ${stats.racFailovers}`);
+        }
+
       } catch (error) {
-        console.error('Failed to collect pool statistics:', error.message);
+        console.error('Enterprise pool monitoring error:', error);
       }
-    }, this.poolConfig.statsIntervalSeconds! * 1000);
+    }, intervalMs);
   }
 
+  private detectConnectionLeaks(): number {
+    let leakCount = 0;
+    const now = Date.now();
+    const leakThreshold = (this.poolConfig.abandonedConnectionTimeout || 300) * 1000;
+
+    for (const [connectionId, connectionInfo] of this.activeConnections) {
+      if (now - connectionInfo.borrowed.getTime() > leakThreshold) {
+        leakCount++;
+        console.warn(`Potential connection leak detected: ${connectionId}, borrowed ${Math.floor((now - connectionInfo.borrowed.getTime()) / 1000)}s ago`);
+      }
+    }
+
+    return leakCount;
+  }
+
+  private async checkRacNodeHealth(): Promise<number> {
+    if (!this.poolConfig.racNodes) {
+      return 0;
+    }
+
+    let activeNodes = 0;
+
+    for (const node of this.poolConfig.racNodes) {
+      try {
+        // Simple connectivity test to each RAC node
+        const testConfig: OracleJdbcConfig = {
+          ...this.config,
+          host: node.host,
+          port: node.port
+        };
+
+        const isHealthy = await OracleJdbcDriver.testConnection(testConfig);
+        if (isHealthy) {
+          activeNodes++;
+        }
+
+      } catch (error) {
+        console.warn(`RAC node ${node.host}:${node.port} health check failed:`, error.message);
+      }
+    }
+
+    return activeNodes;
+  }
+
+  private getRecentFailoverEvents(): RacFailoverEvent[] {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return this.racFailoverEvents.filter(event => event.timestamp >= oneDayAgo);
+  }
+
+  private initializeStatistics(): void {
+    this.statistics = {
+      poolName: `EnterprisePool_${this.poolId}`,
+      poolId: this.poolId,
+      totalConnections: 0,
+      availableConnections: 0,
+      borrowedConnections: 0,
+      peakConnections: 0,
+      connectionsCreated: 0,
+      connectionsClosed: 0,
+      failedConnections: 0,
+      connectionWaitTime: 0,
+      connectionBorrowTime: 0,
+      cumulativeConnectionBorrowTime: 0,
+      cumulativeConnectionReturnTime: 0,
+      averageConnectionBorrowTime: 0,
+      maxConnectionBorrowTime: 0,
+      connectionLeaks: 0,
+      validationErrors: 0,
+      racFailovers: 0,
+      poolHealth: 'HEALTHY',
+      lastHealthCheck: new Date()
+    };
+  }
+
+  private updateConnectionStatistics(operation: 'borrowed' | 'returned' | 'failed', waitTime?: number): void {
+    switch (operation) {
+      case 'borrowed':
+        if (waitTime) {
+          this.statistics.maxConnectionBorrowTime = Math.max(this.statistics.maxConnectionBorrowTime, waitTime);
+        }
+        break;
+      case 'failed':
+        // Could add additional failure tracking
+        break;
+    }
+  }
+
+  // Getters
   getPoolId(): string {
     return this.poolId;
   }
@@ -374,5 +758,13 @@ export class EnterpriseConnectionPool {
 
   isPoolInitialized(): boolean {
     return this.isInitialized;
+  }
+
+  getActiveConnectionsCount(): number {
+    return this.activeConnections.size;
+  }
+
+  getRacFailoverEvents(): RacFailoverEvent[] {
+    return [...this.racFailoverEvents];
   }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "n8n-nodes-oracle-jdbc-advanced",
-  "version": "4.0.0",
-  "description": "Oracle Database nodes using pure JDBC driver - Zero Oracle Client dependencies. Enterprise-grade Oracle connectivity for n8n with connection pooling, transactions, and stored procedures.",
+  "name": "oracle-jdbc-advanced-n8n",
+  "version": "4.0.1",
+  "description": "Oracle Database nodes using pure JDBC driver (zero Oracle Client dependencies). Enterprise-grade Oracle connectivity for n8n with pooling, transactions, stored procedures, RAC/ADG and health-monitoring.",
   "keywords": [
     "n8n-community-node-package",
     "oracle",
@@ -19,17 +19,14 @@
     "autonomous-database"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced",
-  "author": {
-    "name": "Jônatas Meireles Sousa Vieira",
-    "email": "jonatas.mei@outlook.com"
-  },
+  "homepage": "https://github.com/jonales/oracle-jdbc-advanced-n8n",
+  "author": "Jônatas Meireles Sousa Vieira <jonatas.mei@outlook.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced.git"
+    "url": "git+https://github.com/jonales/oracle-jdbc-advanced-n8n.git"
   },
   "bugs": {
-    "url": "https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced/issues"
+    "url": "https://github.com/jonales/oracle-jdbc-advanced-n8n/issues"
   },
   "type": "commonjs",
   "main": "dist/index.js",
@@ -65,13 +62,20 @@
   ],
   "packageManager": "npm@10.8.2",
   "scripts": {
-    "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "prebuild": "npm run clean && npm run setup:java",
+    "clean": "rimraf dist scripts/verification-test tsconfig.tsbuildinfo",
+    "setup:java": "node scripts/setup-java.js",
+    "setup:java:verbose": "node scripts/setup-java.js --verbose",
+    "download:jdbc": "node scripts/download-jdbc.js",
+    "download:jdbc:verbose": "node scripts/download-jdbc.js --verbose",
+    "download:jdbc:force": "node scripts/download-jdbc.js --force",
+    "verify:setup": "node scripts/verify-setup.js",
+    "test:jdbc": "node scripts/test-connection.js",
+    "benchmark": "node scripts/benchmark.js",
+    "setup": "npm run setup:java && npm run download:jdbc && npm run verify:setup",
+    "prebuild": "npm run clean && npm run setup",
     "build": "tsc -p tsconfig.json && gulp build:complete",
     "build:watch": "tsc -p tsconfig.json --watch",
     "build:assets": "gulp build:assets",
-    "setup:java": "node scripts/setup-java.js",
-    "download:jdbc": "node scripts/download-jdbc.js",
     "dev": "npm run build:watch",
     "format": "prettier . --write --ignore-path .gitignore",
     "format:check": "prettier . --check --ignore-path .gitignore",
@@ -81,7 +85,6 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
-    "test:jdbc": "node scripts/test-jdbc-connection.js",
     "prepublishOnly": "npm run clean && npm run build && npm run lint && npm run test",
     "prepare": "husky install",
     "release": "semantic-release",
@@ -186,5 +189,24 @@
       "@semantic-release/github",
       "@semantic-release/git"
     ]
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "config": {
+    "java": {
+      "version": "11",
+      "required": true
+    },
+    "oracle": {
+      "jdbc": {
+        "version": "21.8.0",
+        "drivers": [
+          "ojdbc11.jar",
+          "ucp.jar",
+          "orai18n.jar"
+        ]
+      }
+    }
   }
 }

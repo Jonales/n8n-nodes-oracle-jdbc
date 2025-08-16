@@ -1,37 +1,129 @@
 {
   "compilerOptions": {
+    /* Language and Environment */
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "module": "CommonJS",
+    "moduleResolution": "node",
+    
+    /* Modules */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./nodes/*"],
+      "@credentials/*": ["./credentials/*"],
+      "@types/*": ["./types/*"],
+      "@utils/*": ["./utils/*"],
+      "@core/*": ["./core/*"],
+      "@scripts/*": ["./scripts/*"]
+    },
+    "rootDir": ".",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ],
+    "types": [
+      "node",
+      "jest"
+    ],
+    
+    /* Emit */
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
+    "removeComments": false,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    "newLine": "lf",
+    
+    /* Interop Constraints */
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    
+    /* Type Checking */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    
+    /* Completeness */
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    
+    /* Advanced */
+    "resolveJsonModule": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "preserveConstEnums": true,
+    "suppressImplicitAnyIndexErrors": false,
+    
+    /* Performance */
     "incremental": true,
-    "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
+    "assumeChangesOnlyAffectDirectDependencies": true,
+    
+    /* Output Formatting */
+    "pretty": true,
+    "preserveWatchOutput": true
   },
   "include": [
     "nodes/**/*",
-    "credentials/**/*",
-    "scripts/**/*"
+    "credentials/**/*", 
+    "core/**/*",
+    "types/**/*",
+    "utils/**/*",
+    "scripts/**/*.ts",
+    "*.ts"
   ],
   "exclude": [
-    "dist",
+    "dist/**/*",
+    "lib/**/*",
+    "node_modules/**/*",
+    "coverage/**/*",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "node_modules"
-  ]
+    "**/__tests__/**/*",
+    "scripts/verification-test/**/*",
+    "scripts/**/*.js",
+    "gulpfile.js",
+    "jest.config.js",
+    "*.config.js"
+  ],
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": true,
+    "files": true,
+    "compilerOptions": {
+      "module": "CommonJS",
+      "target": "ES2022"
+    }
+  },
+  "watchOptions": {
+    "watchFile": "useFsEvents",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriority",
+    "synchronousWatchDirectory": true,
+    "excludeDirectories": [
+      "**/node_modules",
+      "**/dist",
+      "**/coverage",
+      "**/lib"
+    ]
+  }
 }
