@@ -62,7 +62,7 @@
   ],
   "packageManager": "npm@10.8.2",
   "scripts": {
-    "clean": "rimraf dist scripts/verification-test tsconfig.tsbuildinfo",
+    "clean": "npx rimraf dist scripts/verification-test tsconfig.tsbuildinfo",
     "setup:java": "node scripts/setup-java.js",
     "setup:java:verbose": "node scripts/setup-java.js --verbose",
     "download:jdbc": "node scripts/download-jdbc.js",
