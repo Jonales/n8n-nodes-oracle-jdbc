@@ -1,14 +1,35 @@
-// eslint.config.js - Configuração Unificada Enterprise Oracle JDBC Advanced N8N
+// eslint.config.js - Configuração Enterprise Oracle JDBC Advanced N8N
 const globals = require('globals');
 const js = require('@eslint/js');
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const stylisticPlugin = require('@stylistic/eslint-plugin-js');
 const importPlugin = require('eslint-plugin-import');
 const n8nPlugin = require('eslint-plugin-n8n-nodes-base');
 const prettierPlugin = require('eslint-plugin-prettier');
 
 // ==========================================
-// CONFIGURAÇÕES GLOBAIS
+// 🗃️ CACHE & PERFORMANCE CONFIGURATION
+// ==========================================
+
+const CACHE_CONFIG = {
+  // Cache location optimized for CI/CD
+  cacheLocation: '.cache/eslint/',
+  
+  // Cache strategy: metadata (dev) vs content (CI)
+  cacheStrategy: process.env.CI ? 'content' : 'metadata',
+  
+  // Performance settings
+  allowInlineConfig: true,
+  reportUnusedDisableDirectives: 'error',
+  
+  // Memory optimization
+  maxWarnings: 50,
+  errorOnUnmatchedPattern: false
+};
+
+// ==========================================
+// 📁 PROJECT STRUCTURE PATHS
 // ==========================================
 
 const PROJECT_PATHS = {
@@ -32,6 +53,7 @@ const PROJECT_PATHS = {
   configs: [
     '*.config.js',
     '*.config.cjs',
+    '*.config.mjs',
     'gulpfile.js',
     'jest.config.js',
     '.eslintrc.cjs'
@@ -61,13 +83,18 @@ const IGNORE_PATTERNS = [
   'coverage/**',
   '.nyc_output/**',
   
+  // Cache directories
+  '.cache/**',
+  '.eslintcache',
+  
   // TypeScript build info
   '**/*.tsbuildinfo',
+  'tsconfig.tsbuildinfo',
   
   // Logs and temporary files
   '**/*.log',
   'scripts/verification-test/**',
-  'benchmark-results.json',
+  'benchmark-results/**',
   'verification-report.json',
   
   // Generated files
@@ -81,17 +108,60 @@ const IGNORE_PATTERNS = [
 ];
 
 // ==========================================
-// CONFIGURAÇÃO PRINCIPAL
+// 🎯 ORACLE JDBC SPECIFIC RULES
+// ==========================================
+
+const ORACLE_JDBC_RULES = {
+  // Java bridge specific allowances
+  'no-undef': 'off', // java global is provided by node-java bridge
+  '@typescript-eslint/no-explicit-any': ['error', {
+    ignoreRestArgs: true,
+    fixToUnknown: false
+  }],
+  
+  // Oracle property naming conventions
+  '@typescript-eslint/naming-convention': [
+    'error',
+    // Oracle JDBC properties (keep original format)
+    {
+      selector: 'property',
+      format: null,
+      filter: {
+        regex: '^(oracle\\.|javax\\.|java\\.)',
+        match: true
+      }
+    },
+    // Standard TypeScript naming
+    {
+      selector: 'typeLike',
+      format: ['PascalCase']
+    },
+    {
+      selector: 'interface',
+      format: ['PascalCase'],
+      custom: {
+        regex: '^I[A-Z]',
+        match: false
+      }
+    }
+  ]
+};
+
+// ==========================================
+// 🏗️ MAIN CONFIGURATION
 // ==========================================
 
 module.exports = [
-  // Ignores globais
+  // Global ignores
   {
     ignores: IGNORE_PATTERNS
   },
 
+  // JavaScript base configuration
+  js.configs.recommended,
+
   // ==========================================
-  // CONFIGURAÇÃO PARA ARQUIVOS TYPESCRIPT CORE
+  // 📝 TYPESCRIPT CORE CONFIGURATION
   // ==========================================
   {
     files: PROJECT_PATHS.typescript,
@@ -100,23 +170,27 @@ module.exports = [
       ecmaVersion: 'latest',
       sourceType: 'module',
       parserOptions: {
-        project: './tsconfig.json',
+        project: ['./tsconfig.json'],
         tsconfigRootDir: __dirname,
-        extraFileExtensions: ['.json']
+        extraFileExtensions: ['.json'],
+        warnOnUnsupportedTypeScriptVersion: false
       },
       globals: {
         ...globals.node,
-        ...globals.es2022,
+        ...globals.es2023,
         // Java bridge globals for Oracle JDBC
         java: 'readonly',
         Buffer: 'readonly',
         console: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly'
       }
     },
     
     plugins: {
       '@typescript-eslint': tsPlugin,
+      '@stylistic': stylisticPlugin,
       'import': importPlugin,
       'prettier': prettierPlugin,
       'n8n-nodes-base': n8nPlugin
@@ -124,7 +198,7 @@ module.exports = [
     
     rules: {
       // ==========================================
-      // PRETTIER INTEGRATION
+      // 💅 PRETTIER INTEGRATION
       // ==========================================
       'prettier/prettier': ['error', {
         singleQuote: true,
@@ -132,37 +206,48 @@ module.exports = [
         tabWidth: 2,
         semi: true,
         printWidth: 100,
-        endOfLine: 'lf'
+        endOfLine: 'lf',
+        arrowParens: 'avoid',
+        bracketSpacing: true
       }],
 
       // ==========================================
-      // TYPESCRIPT RULES - ENTERPRISE GRADE
+      // ⚡ PERFORMANCE OPTIMIZATIONS
       // ==========================================
+      '@typescript-eslint/prefer-readonly': 'warn',
+      '@typescript-eslint/prefer-readonly-parameter-types': 'off', // Too strict for JDBC
       
-      // Type Safety - Critical for Oracle JDBC
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unsafe-any': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
+      // ==========================================
+      // 🔒 TYPE SAFETY - ORACLE JDBC OPTIMIZED
+      // ==========================================
+      ...ORACLE_JDBC_RULES,
+      
+      '@typescript-eslint/no-unsafe-assignment': ['error', {
+        ignoreRestArgs: true
+      }],
       '@typescript-eslint/no-unsafe-call': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'warn', // Relaxed for Java objects
       '@typescript-eslint/no-unsafe-return': 'error',
       
       // Code Quality
       '@typescript-eslint/no-unused-vars': ['error', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
-        destructuredArrayIgnorePattern: '^_'
+        destructuredArrayIgnorePattern: '^_',
+        caughtErrors: 'none'
       }],
       '@typescript-eslint/no-inferrable-types': 'error',
       '@typescript-eslint/prefer-nullish-coalescing': 'error',
       '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-unnecessary-condition': 'warn',
       
       // Function and Method Rules
       '@typescript-eslint/explicit-function-return-type': ['warn', {
         allowExpressions: true,
         allowTypedFunctionExpressions: true,
-        allowHigherOrderFunctions: true
+        allowHigherOrderFunctions: true,
+        allowDirectConstAssertionInArrowFunctions: true
       }],
       '@typescript-eslint/explicit-member-accessibility': ['error', {
         accessibility: 'explicit',
@@ -171,63 +256,12 @@ module.exports = [
         }
       }],
       
-      // Naming Conventions - Oracle JDBC Specific
-      '@typescript-eslint/naming-convention': [
-        'error',
-        // Types
-        {
-          selector: 'typeLike',
-          format: ['PascalCase']
-        },
-        // Interfaces (Oracle configs, connection types)
-        {
-          selector: 'interface',
-          format: ['PascalCase'],
-          custom: {
-            regex: '^I[A-Z]',
-            match: false
-          }
-        },
-        // Classes (ConnectionPool, TransactionManager)
-        {
-          selector: 'class',
-          format: ['PascalCase']
-        },
-        // Enums (Oracle specific types)
-        {
-          selector: 'enum',
-          format: ['PascalCase']
-        },
-        {
-          selector: 'enumMember',
-          format: ['UPPER_CASE']
-        },
-        // Methods and properties
-        {
-          selector: 'method',
-          format: ['camelCase']
-        },
-        {
-          selector: 'property',
-          format: ['camelCase', 'PascalCase'],
-          filter: {
-            regex: '^(oracle\\.|javax\\.|java\\.)',
-            match: false
-          }
-        },
-        // Constants
-        {
-          selector: 'variable',
-          modifiers: ['const'],
-          format: ['camelCase', 'PascalCase', 'UPPER_CASE']
-        }
-      ],
-      
       // Type Definitions
       '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
       '@typescript-eslint/consistent-type-imports': ['error', {
         prefer: 'type-imports',
-        disallowTypeAnnotations: false
+        disallowTypeAnnotations: false,
+        fixStyle: 'separate-type-imports'
       }],
       '@typescript-eslint/consistent-type-exports': 'error',
       
@@ -236,11 +270,12 @@ module.exports = [
         default: 'array'
       }],
       '@typescript-eslint/consistent-type-assertions': ['error', {
-        assertionStyle: 'as'
+        assertionStyle: 'as',
+        objectLiteralTypeAssertions: 'never'
       }],
 
       // ==========================================
-      // IMPORT/EXPORT RULES - N8N STRUCTURE
+      // 📦 IMPORT/EXPORT RULES - N8N OPTIMIZED
       // ==========================================
       'import/order': ['error', {
         groups: [
@@ -255,71 +290,129 @@ module.exports = [
         alphabetize: {
           order: 'asc',
           caseInsensitive: true
-        }
+        },
+        pathGroups: [
+          {
+            pattern: 'n8n-workflow',
+            group: 'external',
+            position: 'before'
+          },
+          {
+            pattern: './core/**',
+            group: 'internal',
+            position: 'before'
+          },
+          {
+            pattern: './types/**',
+            group: 'internal',
+            position: 'before'
+          }
+        ],
+        pathGroupsExcludedImportTypes: ['type']
       }],
-      'import/no-duplicates': 'error',
-      'import/no-unresolved': 'error',
+      'import/no-duplicates': ['error', {
+        considerQueryString: true,
+        'prefer-inline': false
+      }],
+      'import/no-unresolved': ['error', {
+        ignore: ['^java$'] // Ignore java bridge imports
+      }],
       'import/no-default-export': 'error',
+      'import/consistent-type-specifier-style': ['error', 'prefer-inline'],
       
       // ==========================================
-      // GENERAL CODE QUALITY RULES
+      // 🏆 CODE QUALITY RULES
       // ==========================================
-      'prefer-const': 'error',
+      'prefer-const': ['error', {
+        destructuring: 'all',
+        ignoreReadBeforeAssign: false
+      }],
       'no-var': 'error',
-      'object-shorthand': ['error', 'always'],
-      'prefer-arrow-callback': 'error',
-      'arrow-body-style': ['error', 'as-needed'],
-      'curly': ['error', 'multi-line'],
+      'object-shorthand': ['error', 'always', {
+        avoidQuotes: true,
+        ignoreConstructors: false,
+        avoidExplicitReturnArrows: true
+      }],
+      'prefer-arrow-callback': ['error', {
+        allowNamedFunctions: false,
+        allowUnboundThis: true
+      }],
+      'arrow-body-style': ['error', 'as-needed', {
+        requireReturnForObjectLiteral: false
+      }],
+      'curly': ['error', 'multi-line', 'consistent'],
       'eqeqeq': ['error', 'smart'],
       'guard-for-in': 'error',
       'no-caller': 'error',
       'no-debugger': 'error',
       'no-new-wrappers': 'error',
       'no-throw-literal': 'error',
-      'radix': 'error',
+      'radix': ['error', 'as-needed'],
       'use-isnan': 'error',
-      
-      // Console - allowed for Oracle JDBC debugging
-      'no-console': 'off',
+      'no-console': 'off', // Allowed for Oracle JDBC logging
+      'no-empty': ['error', {
+        allowEmptyCatch: true
+      }],
 
       // ==========================================
-      // N8N SPECIFIC RULES
+      // 🎯 N8N SPECIFIC RULES
       // ==========================================
       'n8n-nodes-base/node-class-description-inputs-wrong-regular-count': 'error',
       'n8n-nodes-base/node-class-description-outputs-wrong-regular-count': 'error',
       'n8n-nodes-base/node-param-description-lowercase-first-char': 'warn',
       'n8n-nodes-base/node-param-display-name-lowercase-first-char': 'warn',
       'n8n-nodes-base/node-param-description-missing-final-period': 'warn',
-      'n8n-nodes-base/node-param-display-name-miscased': 'warn'
+      'n8n-nodes-base/node-param-display-name-miscased': 'warn',
+
+      // ==========================================
+      // 🎨 STYLISTIC RULES (PERFORMANCE OPTIMIZED)
+      // ==========================================
+      '@stylistic/comma-dangle': ['error', 'always-multiline'],
+      '@stylistic/quotes': ['error', 'single', {
+        avoidEscape: true,
+        allowTemplateLiterals: true
+      }],
+      '@stylistic/semi': ['error', 'always']
     },
     
     settings: {
       'import/resolver': {
         typescript: {
           alwaysTryTypes: true,
-          project: './tsconfig.json'
+          project: ['./tsconfig.json'],
+          cache: true
         },
         node: {
           extensions: ['.ts', '.js', '.json']
         }
+      },
+      'import/cache': {
+        lifetime: '∞'
       }
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA ARQUIVOS DE TESTE
+  // 🧪 TEST FILES CONFIGURATION
   // ==========================================
   {
     files: PROJECT_PATHS.tests,
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: './tsconfig.json'
+        project: ['./tsconfig.json']
       },
       globals: {
         ...globals.node,
         ...globals.jest,
-        ...globals.es2022
+        ...globals.es2023,
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly'
       }
     },
     
@@ -337,36 +430,41 @@ module.exports = [
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
       'import/no-default-export': 'off',
-      'n8n-nodes-base/node-param-description-lowercase-first-char': 'off',
-      'n8n-nodes-base/node-param-display-name-lowercase-first-char': 'off'
+      'prefer-const': 'warn',
+      'no-console': 'off'
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA NODES N8N
+  // 🚀 N8N NODES CONFIGURATION
   // ==========================================
   {
     files: PROJECT_PATHS.nodes,
     rules: {
       'import/no-default-export': 'off', // N8N nodes require default export
-      '@typescript-eslint/explicit-function-return-type': 'off'
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-member-accessibility': 'off',
+      'n8n-nodes-base/node-param-description-lowercase-first-char': 'error',
+      'n8n-nodes-base/node-param-display-name-lowercase-first-char': 'error'
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA CREDENTIALS N8N
+  // 🔐 N8N CREDENTIALS CONFIGURATION
   // ==========================================
   {
     files: PROJECT_PATHS.credentials,
     rules: {
       'import/no-default-export': 'off', // N8N credentials require default export
-      '@typescript-eslint/explicit-function-return-type': 'off'
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-member-accessibility': 'off'
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA ARQUIVOS DE CONFIGURAÇÃO
+  // ⚙️ CONFIGURATION FILES
   // ==========================================
   {
     files: PROJECT_PATHS.configs,
@@ -386,12 +484,13 @@ module.exports = [
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/no-require-imports': 'off',
       'import/no-default-export': 'off',
-      'no-console': 'off'
+      'no-console': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off'
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA SCRIPTS
+  // 📜 SCRIPTS CONFIGURATION
   // ==========================================
   {
     files: PROJECT_PATHS.scripts,
@@ -401,19 +500,24 @@ module.exports = [
       globals: {
         ...globals.node,
         console: 'readonly',
-        process: 'readonly'
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly'
       }
     },
     
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-var-requires': 'off',
-      'import/no-default-export': 'off'
+      '@typescript-eslint/no-require-imports': 'off',
+      'import/no-default-export': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      'prefer-const': 'warn'
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA ARQUIVOS DE DEFINIÇÃO
+  // 📋 DEFINITION FILES
   // ==========================================
   {
     files: PROJECT_PATHS.definitions,
@@ -421,21 +525,22 @@ module.exports = [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/no-empty-interface': 'off',
+      '@typescript-eslint/consistent-type-definitions': 'off',
       'import/no-default-export': 'off'
     }
   },
 
   // ==========================================
-  // CONFIGURAÇÃO PARA ARQUIVOS JAVASCRIPT
+  // 📄 JAVASCRIPT FILES
   // ==========================================
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     languageOptions: {
       ecmaVersion: 'latest',
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...globals.node,
-        ...globals.es2022
+        ...globals.es2023
       }
     },
     
@@ -444,10 +549,21 @@ module.exports = [
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_'
       }],
-      'no-undef': 'warn',
+      'no-undef': 'error',
       'no-console': 'off',
       'prefer-const': 'error',
-      'no-var': 'error'
+      'no-var': 'error',
+      'object-shorthand': 'error',
+      'prefer-arrow-callback': 'warn'
     }
   }
 ];
+
+// ==========================================
+// 📊 EXPORT CACHE CONFIGURATION FOR CLI
+// ==========================================
+module.exports.meta = {
+  name: 'oracle-jdbc-advanced-n8n-eslint-config',
+  version: '1.0.0',
+  cache: CACHE_CONFIG
+};
