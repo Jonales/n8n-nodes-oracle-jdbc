@@ -1,6 +1,6 @@
 {
   "name": "oracle-jdbc-advanced-n8n",
-  "version": "4.0.1",
+  "version": "1.0.0",
   "description": "Oracle Database nodes using pure JDBC driver (zero Oracle Client dependencies). Enterprise-grade Oracle connectivity for n8n with pooling, transactions, stored procedures, RAC/ADG and health-monitoring.",
   "keywords": [
     "n8n-community-node-package",
