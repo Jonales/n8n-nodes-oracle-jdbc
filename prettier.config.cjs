@@ -20,21 +20,38 @@ module.exports = {
 
   // Configurações do plugin de ordenação de imports
   importOrder: [
-    // 1. Imports de node modules (terceiros)
+    // 1. Node.js built-ins
+    '^node:(.*)$',
+    
+    // 2. External dependencies
     '^@?\\w',
-    '^n8n-workflow',
     '^java$',
     '^uuid$',
+    '^n8n-workflow$',
+    '^sql-formatter$',
     
-    // 2. Imports relativos a Oracle/JDBC
-    '^./types/(.*)$',
+    // 3. Internal imports - types first
+    '^@/types/(.*)$',
     '^../types/(.*)$',
-    '^./core/(.*)$', 
-    '^../core/(.*)$',
-    '^./utils/(.*)$',
-    '^../utils/(.*)$',
+    '^./types/(.*)$',
     
-    // 3. Imports relativos locais (mesmo diretório)
+    // 4. Internal imports - core functionality
+    '^@/core/(.*)$',
+    '^../core/(.*)$',
+    '^./core/(.*)$',
+    
+    // 5. Internal imports - utils
+    '^@/utils/(.*)$',
+    '^../utils/(.*)$',
+    '^./utils/(.*)$',
+    
+    // 6. Internal imports - credentials & nodes
+    '^@/credentials/(.*)$',
+    '^@/nodes/(.*)$',
+    '^../credentials/(.*)$',
+    '^../nodes/(.*)$',
+    
+    // 7. Relative imports (same directory)
     '^[./]',
   ],
   
@@ -47,6 +64,12 @@ module.exports = {
   // Agrupar imports do mesmo módulo
   importOrderGroupNamespaceSpecifiers: true,
   
-  // Preservar diretivas como 'use strict'
+  // Manter imports não utilizados (para evitar quebrar a funcionalidade)
   importOrderKeepUnusedImports: false,
+  
+  // Tratar como módulos separados
+  importOrderMergeDuplicateImports: true,
+  
+  // Combinar imports do tipo "type" e "value"
+  importOrderCombineTypeAndValueImports: true,
 };
