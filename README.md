@@ -12,17 +12,6 @@
 
 # 📖 Documentação em Português
 
-# oracle-jdbc-advanced-n8n
-
-![Oracle JDBC Advanced N8N](image/README/oracle-n8n.png)
-
-[![npm version](https://img.shields.io/npm/v/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)
-[![npm downloads](https://img.shields.io/npm/dt/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)
-
-Node avançado para **n8n** que integra Oracle Database via **JDBC nativo**, com recursos empresariais, pooling inteligente, gestão avançada de transações e suporte completo a workloads Oracle críticos.
-
----
-
 ## 📋 Sobre
 
 Solução empresarial para integração entre n8n e bancos Oracle usando tecnologia JDBC oficial (ojdbc, UCP), Java Bridge e foco em alta performance, segurança e escalabilidade.
@@ -84,48 +73,41 @@ No n8n, crie credenciais com os parâmetros:
 ## 🚀 Exemplos de Uso
 
 ### **Transação Completa**
-```
-
+```sql
 INSERT INTO pedidos (cliente_id, valor) VALUES (:cli_id, :valor);
 UPDATE estoque SET qtd = qtd - :qtd WHERE produto_id = :prod_id;
 SAVEPOINT sp1;
 DELETE FROM carrinho WHERE cliente_id = :cli_id;
-
 ```
 
 ### **Bulk Insert Otimizado**
 Defina operação "batch", tabela de destino e lote de dados:
-```
-
+```json
 {
-"operationType": "batch",
-"tableName": "clientes",
-"batchSize": 1000
+  "operationType": "batch",
+  "tableName": "customers",
+  "batchSize": 1000
 }
-
 ```
 
 ### **Execução de Procedure**
-```
-
+```json
 {
-"operationType": "procedure",
-"procedureName": "atualiza_preco",
-"parameters": [
-{ "name": "p_produto_id", "type": "IN", "dataType": "NUMBER", "value": 123 },
-{ "name": "p_novo_preco", "type": "IN", "dataType": "NUMBER", "value": 72.5 }
-]
+  "operationType": "procedure",
+  "procedureName": "update_price",
+  "parameters": [
+    { "name": "p_product_id", "type": "IN", "dataType": "NUMBER", "value": 123 },
+    { "name": "p_new_price", "type": "IN", "dataType": "NUMBER", "value": 72.5 }
+  ]
 }
-
 ```
 
 ### **Pooling Empresarial**
-```
 
+```ts
 import { PoolConfigurationPresets } from './core/AdvancedPoolConfig';
 
 const poolConfig = PoolConfigurationPresets.getHighVolumeOLTP();
-
 ```
 
 ---
@@ -352,17 +334,6 @@ Made with ❤️ 100% autoral, sem forks de terceiros!
 ---
 
 # 📖 Documentation in English
-
-# oracle-jdbc-advanced-n8n
-
-![Oracle JDBC Advanced N8N](image/README/oracle-n8n.png)
-
-[![npm version](https://img.shields.io/npm/v/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)  
-[![npm downloads](https://img.shields.io/npm/dt/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)
-
-Advanced node for **n8n** that integrates Oracle Database via **native JDBC**, with enterprise features, smart pooling, advanced transaction management, and full support for critical Oracle workloads.
-
----
 
 ## 📋 About
 
@@ -617,6 +588,32 @@ If this project helps you, consider supporting it!
 ## 📄 License
 
 This project is licensed under the **MIT License** – see [LICENSE.md](LICENSE.md) for details.
+
+```
+
+MIT License
+
+Copyright (c) 2025 Jônatas Meireles Sousa Vieira
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
 
 ---
 
