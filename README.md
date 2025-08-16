@@ -262,6 +262,9 @@ Jônatas Meireles Sousa Vieira
 
 **⭐ Dê uma estrela se gostou!**
 
+[![GitHub stars](https://img.shields.io/github/stars/jonales/oracle-jdbc-advanced-n8n.svg?style=social&label=Star)](https://github.com/jonales/oracle-jdbc-advanced-n8n)
+[![GitHub forks](https://img.shields.io/github/forks/jonales/oracle-jdbc-advanced-n8n.svg?style=social&label=Fork)](https://github.com/jonales/oracle-jdbc-advanced-n8n/fork)
+
 Made with ❤️ 100% autoral, sem forks de terceiros!
 
 </div>
