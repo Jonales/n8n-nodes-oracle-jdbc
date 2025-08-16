@@ -23,7 +23,6 @@ Oracle JDBC Advanced N8N is a **production-ready enterprise solution** that exte
 - **📊 Production Monitoring** - Real-time pool statistics and health checks
 - **🎯 Stored Procedures** - Complete PL/SQL support with IN/OUT parameters
 
----
 
 ## 🚀 **Quick Start**
 
@@ -92,8 +91,6 @@ lib/
 
 ```
 
----
-
 ## 🏗️ **Architecture**
 
 ### **Component Overview**
@@ -129,7 +126,6 @@ G --> J[(Oracle RAC/ADG)]
 | **🎯 StoredProcedureExecutor** | PL/SQL procedure execution | IN/OUT parameters, functions, packages |
 | **🛠️ QueryExecutor** | SQL query execution | SELECT, DML, PL/SQL with metadata |
 
----
 
 ## 📋 **Configuration**
 
@@ -206,7 +202,6 @@ statsIntervalSeconds: 30
 
 ```
 
----
 
 ## 💼 **Usage Examples**
 
@@ -308,7 +303,6 @@ const connection = await pool.getConnection({
 
 ```
 
----
 
 ## 🎛️ **N8N Node Configuration**
 
@@ -345,7 +339,6 @@ const connection = await pool.getConnection({
 
 ```
 
----
 
 ## 🔧 **Development**
 
@@ -439,7 +432,6 @@ export DEBUG=oracle:jdbc:*
 
 ```
 
----
 
 ## 🚀 **Performance**
 
@@ -484,7 +476,6 @@ statementCacheType: 'LRU'
 
 ```
 
----
 
 ## 🛡️ **Security**
 
@@ -522,7 +513,6 @@ enableOciIamAuth: true
 - ✅ **Use Oracle Wallet** for credential management
 - ✅ **Enable connection labeling** for audit trails
 
----
 
 ## 📊 **Monitoring**
 
@@ -575,7 +565,6 @@ new winston.transports.File({ filename: 'oracle-jdbc.log' })
 
 ```
 
----
 
 ## 🐛 **Troubleshooting**
 
@@ -627,7 +616,6 @@ npm run validate:all
 
 ```
 
----
 
 ## 🔄 **Migration Guide**
 
@@ -667,7 +655,6 @@ socketTimeout: 60
 
 ```
 
----
 
 ## 🤝 **Contributing**
 
@@ -700,13 +687,11 @@ npm test
 4. **Update documentation** as needed
 5. **Submit pull request** with detailed description
 
----
 
 ## 📄 **License**
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
----
 
 ## 🎯 **Roadmap**
 
@@ -728,7 +713,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - [ ] Enhanced error recovery
 - [ ] Cloud-native deployment
 
----
 
 ## 📞 **Support**
 
@@ -746,7 +730,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **🗨️ Discussions**: [Community Forum](https://github.com/jonales/oracle-jdbc-advanced-n8n/discussions)
 - **📚 Wiki**: [Community Wiki](https://github.com/jonales/oracle-jdbc-advanced-n8n/wiki)
 
----
 
 ## 🏆 **Acknowledgments**
 
@@ -755,7 +738,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Node.js Community** for the Java bridge libraries
 - **Contributors** who have made this project possible
 
----
 
 <div align="center">
 
