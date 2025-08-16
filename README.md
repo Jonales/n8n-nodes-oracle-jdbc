@@ -1,9 +1,9 @@
-# n8n-nodes-oracle-jdbc-advanced
+# oracle-jdbc-advanced-n8n
 
 ![Oracle JDBC Advanced N8N](image/README/oracle-n8n.png)
 
-[![npm version](https://img.shields.io/npm/v/n8n-nodes-oracle-jdbc-advanced.svg)](https://www.npmjs.com/package/n8n-nodes-oracle-jdbc-advanced)
-[![npm downloads](https://img.shields.io/npm/dt/n8n-nodes-oracle-jdbc-advanced.svg)](https://www.npmjs.com/package/n8n-nodes-oracle-jdbc-advanced)
+[![npm version](https://img.shields.io/npm/v/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)
+[![npm downloads](https://img.shields.io/npm/dt/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)
 
 Node avançado para **n8n** que integra Oracle Database via **JDBC nativo**, com recursos empresariais, pooling inteligente, gestão avançada de transações e suporte completo a workloads Oracle críticos.
 
@@ -37,7 +37,7 @@ Solução empresarial para integração entre n8n e bancos Oracle usando tecnolo
 
 ```
 
-npm install n8n-nodes-oracle-jdbc-advanced
+npm install oracle-jdbc-advanced-n8n
 
 ```
 
@@ -150,7 +150,7 @@ const poolConfig = PoolConfigurationPresets.getHighVolumeOLTP();
 
 ```
 
-n8n-nodes-oracle-jdbc-advanced/
+oracle-jdbc-advanced-n8n/
 ├── core/
 │   ├── AdvancedPoolConfig.ts
 │   ├── BatchOperations.ts
@@ -253,8 +253,8 @@ Jônatas Meireles Sousa Vieira
 
 - [Oracle Database Documentation](https://docs.oracle.com/en/database/oracle/oracle-database/)
 - [n8n Community Nodes](https://docs.n8n.io/integrations/community-nodes/)
-- [Report Issues](https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced/issues)
-- [Discussions](https://github.com/jonales/n8n-nodes-oracle-jdbc-advanced/discussions)
+- [Report Issues](https://github.com/jonales/oracle-jdbc-advanced-n8n/issues)
+- [Discussions](https://github.com/jonales/oracle-jdbc-advanced-n8n/discussions)
 
 ---
 
