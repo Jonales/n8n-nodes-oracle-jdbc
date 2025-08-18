@@ -1,653 +1,644 @@
-import { EnterpriseConnectionPool, PoolStatistics, EnterprisePoolHealth } from './EnterpriseConnectionPool';
+import { JdbcConnection, OracleJdbcConfig } from '../types/JdbcTypes';
+
+import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
+
+import {
+	AdvancedPoolConfiguration,
+	PoolConfigurationPresets,
+	RacNodeConfig,
+} from './AdvancedPoolConfig';
 import { ConnectionPool, PoolConfiguration } from './ConnectionPool';
-import { OracleJdbcConfig, JdbcConnection } from '../types/JdbcTypes';
-import { AdvancedPoolConfiguration, PoolConfigurationPresets, RacNodeConfig } from './AdvancedPoolConfig';
-import { ErrorHandler, ErrorContext } from '../utils/ErrorHandler';
+import {
+	EnterpriseConnectionPool,
+	EnterprisePoolHealth,
+	PoolStatistics,
+} from './EnterpriseConnectionPool';
 
 export interface ManagedPool {
-  poolId: string;
-  name: string;
-  type: 'basic' | 'enterprise';
-  pool: ConnectionPool | EnterpriseConnectionPool;
-  config: OracleJdbcConfig;
-  poolConfig: PoolConfiguration | AdvancedPoolConfiguration;
-  createdAt: Date;
-  lastHealthCheck?: Date;
-  isActive: boolean;
-  tags?: string[];
-  description?: string;
+	poolId: string;
+	name: string;
+	type: 'basic' | 'enterprise';
+	pool: ConnectionPool | EnterpriseConnectionPool;
+	config: OracleJdbcConfig;
+	poolConfig: PoolConfiguration | AdvancedPoolConfiguration;
+	createdAt: Date;
+	lastHealthCheck?: Date;
+	isActive: boolean;
+	tags?: string[];
+	description?: string;
 }
 
 export interface PoolManagerStatistics {
-  totalPools: number;
-  activePools: number;
-  inactivePools: number;
-  healthyPools: number;
-  unhealthyPools: number;
-  totalConnections: number;
-  totalAvailableConnections: number;
-  totalBorrowedConnections: number;
-  poolTypes: {
-    basic: number;
-    enterprise: number;
-  };
-  lastUpdateTime: Date;
+	totalPools: number;
+	activePools: number;
+	inactivePools: number;
+	healthyPools: number;
+	unhealthyPools: number;
+	totalConnections: number;
+	totalAvailableConnections: number;
+	totalBorrowedConnections: number;
+	poolTypes: {
+		basic: number;
+		enterprise: number;
+	};
+	lastUpdateTime: Date;
 }
 
 export interface PoolHealthSummary {
-  poolName: string;
-  poolId: string;
-  type: 'basic' | 'enterprise';
-  isHealthy: boolean;
-  healthScore?: number;
-  issues: string[];
-  warnings: string[];
-  lastCheck: Date;
-  connectionStats: {
-    total: number;
-    available: number;
-    borrowed: number;
-    peak: number;
-  };
+	poolName: string;
+	poolId: string;
+	type: 'basic' | 'enterprise';
+	isHealthy: boolean;
+	healthScore?: number;
+	issues: string[];
+	warnings: string[];
+	lastCheck: Date;
+	connectionStats: {
+		total: number;
+		available: number;
+		borrowed: number;
+		peak: number;
+	};
 }
 
 export interface PoolOperationOptions {
-  timeout?: number;
-  retryAttempts?: number;
-  failFast?: boolean;
+	timeout?: number;
+	retryAttempts?: number;
+	failFast?: boolean;
 }
 
 export class PoolManager {
-  private static instance: PoolManager;
-  private pools = new Map<string, ManagedPool>();
-  private healthMonitorInterval?: NodeJS.Timer;
-  private readonly HEALTH_CHECK_INTERVAL = 60000; // 1 minute
+	private static instance: PoolManager;
+	private pools = new Map<string, ManagedPool>();
+	private healthMonitorInterval?: NodeJS.Timer;
+	private readonly HEALTH_CHECK_INTERVAL = 60000; // 1 minute
 
-  private constructor() {
-    // Start health monitoring
-    this.startHealthMonitoring();
-  }
+	private constructor() {
+		// Start health monitoring
+		this.startHealthMonitoring();
+	}
 
-  public static getInstance(): PoolManager {
-    if (!PoolManager.instance) {
-      PoolManager.instance = new PoolManager();
-    }
-    return PoolManager.instance;
-  }
+	public static getInstance(): PoolManager {
+		if (!PoolManager.instance) {
+			PoolManager.instance = new PoolManager();
+		}
+		return PoolManager.instance;
+	}
 
-  async createPool(
-    poolName: string,
-    config: OracleJdbcConfig,
-    poolConfig: AdvancedPoolConfiguration = {},
-    options: {
-      type?: 'basic' | 'enterprise';
-      tags?: string[];
-      description?: string;
-    } = {}
-  ): Promise<string> {
-    const errorContext: ErrorContext = {
-      operation: 'createPool',
-      poolName
-    };
+	async createPool(
+		poolName: string,
+		config: OracleJdbcConfig,
+		poolConfig: AdvancedPoolConfiguration = {},
+		options: {
+			type?: 'basic' | 'enterprise';
+			tags?: string[];
+			description?: string;
+		} = {},
+	): Promise<string> {
+		const errorContext: ErrorContext = {
+			operation: 'createPool',
+			poolName,
+		};
 
-    try {
-      if (this.pools.has(poolName)) {
-        throw new Error(`Pool ${poolName} already exists`);
-      }
+		try {
+			if (this.pools.has(poolName)) {
+				throw new Error(`Pool ${poolName} already exists`);
+			}
 
-      const { type = 'enterprise', tags, description } = options;
-      let pool: ConnectionPool | EnterpriseConnectionPool;
-      let poolId: string;
+			const { type = 'enterprise', tags, description } = options;
+			let pool: ConnectionPool | EnterpriseConnectionPool;
+			let poolId: string;
 
-      if (type === 'enterprise') {
-        const enterprisePool = new EnterpriseConnectionPool(config, poolConfig);
-        await enterprisePool.initialize();
-        pool = enterprisePool;
-        poolId = enterprisePool.getPoolId();
-      } else {
-        const basicPool = new ConnectionPool(config, poolConfig);
-        await basicPool.initialize();
-        pool = basicPool;
-        poolId = basicPool.getPoolId();
-      }
+			if (type === 'enterprise') {
+				const enterprisePool = new EnterpriseConnectionPool(config, poolConfig);
+				await enterprisePool.initialize();
+				pool = enterprisePool;
+				poolId = enterprisePool.getPoolId();
+			} else {
+				const basicPool = new ConnectionPool(config, poolConfig);
+				await basicPool.initialize();
+				pool = basicPool;
+				poolId = basicPool.getPoolId();
+			}
 
-      const managedPool: ManagedPool = {
-        poolId,
-        name: poolName,
-        type,
-        pool,
-        config,
-        poolConfig,
-        createdAt: new Date(),
-        isActive: true,
-        tags,
-        description
-      };
+			const managedPool: ManagedPool = {
+				poolId,
+				name: poolName,
+				type,
+				pool,
+				config,
+				poolConfig,
+				createdAt: new Date(),
+				isActive: true,
+				tags,
+				description,
+			};
 
-      this.pools.set(poolName, managedPool);
-      
-      console.info(`Pool ${poolName} created successfully`, {
-        poolId,
-        type,
-        tags,
-        description
-      });
+			this.pools.set(poolName, managedPool);
 
-      return poolId;
+			console.info(`Pool ${poolName} created successfully`, {
+				poolId,
+				type,
+				tags,
+				description,
+			});
 
-    } catch (error) {
-      throw ErrorHandler.handleJdbcError(error, `Failed to create pool: ${poolName}`, errorContext);
-    }
-  }
+			return poolId;
+		} catch (error) {
+			throw ErrorHandler.handleJdbcError(error, `Failed to create pool: ${poolName}`, errorContext);
+		}
+	}
 
-  async createHighVolumeOLTPPool(
-    poolName: string,
-    config: OracleJdbcConfig,
-    options: { tags?: string[]; description?: string } = {}
-  ): Promise<string> {
-    return this.createPool(
-      poolName, 
-      config, 
-      PoolConfigurationPresets.getHighVolumeOLTP(),
-      { 
-        type: 'enterprise',
-        tags: ['oltp', 'high-volume', ...(options.tags || [])],
-        description: options.description || 'High Volume OLTP Pool'
-      }
-    );
-  }
+	async createHighVolumeOLTPPool(
+		poolName: string,
+		config: OracleJdbcConfig,
+		options: { tags?: string[]; description?: string } = {},
+	): Promise<string> {
+		return this.createPool(poolName, config, PoolConfigurationPresets.getHighVolumeOLTP(), {
+			type: 'enterprise',
+			tags: ['oltp', 'high-volume', ...(options.tags || [])],
+			description: options.description || 'High Volume OLTP Pool',
+		});
+	}
 
-  async createAnalyticsPool(
-    poolName: string,
-    config: OracleJdbcConfig,
-    options: { tags?: string[]; description?: string } = {}
-  ): Promise<string> {
-    return this.createPool(
-      poolName, 
-      config, 
-      PoolConfigurationPresets.getAnalyticsWorkload(),
-      { 
-        type: 'enterprise',
-        tags: ['analytics', 'long-running', ...(options.tags || [])],
-        description: options.description || 'Analytics Workload Pool'
-      }
-    );
-  }
+	async createAnalyticsPool(
+		poolName: string,
+		config: OracleJdbcConfig,
+		options: { tags?: string[]; description?: string } = {},
+	): Promise<string> {
+		return this.createPool(poolName, config, PoolConfigurationPresets.getAnalyticsWorkload(), {
+			type: 'enterprise',
+			tags: ['analytics', 'long-running', ...(options.tags || [])],
+			description: options.description || 'Analytics Workload Pool',
+		});
+	}
 
-  async createOracleCloudPool(
-    poolName: string,
-    config: OracleJdbcConfig,
-    options: { tags?: string[]; description?: string } = {}
-  ): Promise<string> {
-    return this.createPool(
-      poolName, 
-      config, 
-      PoolConfigurationPresets.getOracleCloudConfig(),
-      { 
-        type: 'enterprise',
-        tags: ['cloud', 'oci', 'ssl', ...(options.tags || [])],
-        description: options.description || 'Oracle Cloud Infrastructure Pool'
-      }
-    );
-  }
+	async createOracleCloudPool(
+		poolName: string,
+		config: OracleJdbcConfig,
+		options: { tags?: string[]; description?: string } = {},
+	): Promise<string> {
+		return this.createPool(poolName, config, PoolConfigurationPresets.getOracleCloudConfig(), {
+			type: 'enterprise',
+			tags: ['cloud', 'oci', 'ssl', ...(options.tags || [])],
+			description: options.description || 'Oracle Cloud Infrastructure Pool',
+		});
+	}
 
-  async createOracleRacPool(
-    poolName: string,
-    config: OracleJdbcConfig,
-    racNodes: RacNodeConfig[],
-    options: { tags?: string[]; description?: string } = {}
-  ): Promise<string> {
-    return this.createPool(
-      poolName, 
-      config, 
-      PoolConfigurationPresets.getOracleRacConfig(racNodes),
-      { 
-        type: 'enterprise',
-        tags: ['rac', 'high-availability', 'failover', ...(options.tags || [])],
-        description: options.description || 'Oracle RAC Pool with Failover'
-      }
-    );
-  }
+	async createOracleRacPool(
+		poolName: string,
+		config: OracleJdbcConfig,
+		racNodes: RacNodeConfig[],
+		options: { tags?: string[]; description?: string } = {},
+	): Promise<string> {
+		return this.createPool(
+			poolName,
+			config,
+			PoolConfigurationPresets.getOracleRacConfig(racNodes),
+			{
+				type: 'enterprise',
+				tags: ['rac', 'high-availability', 'failover', ...(options.tags || [])],
+				description: options.description || 'Oracle RAC Pool with Failover',
+			},
+		);
+	}
 
-  getPool(poolName: string): ConnectionPool | EnterpriseConnectionPool {
-    const managedPool = this.pools.get(poolName);
-    if (!managedPool) {
-      throw new Error(`Pool ${poolName} not found`);
-    }
-    
-    if (!managedPool.isActive) {
-      throw new Error(`Pool ${poolName} is not active`);
-    }
+	getPool(poolName: string): ConnectionPool | EnterpriseConnectionPool {
+		const managedPool = this.pools.get(poolName);
+		if (!managedPool) {
+			throw new Error(`Pool ${poolName} not found`);
+		}
 
-    return managedPool.pool;
-  }
+		if (!managedPool.isActive) {
+			throw new Error(`Pool ${poolName} is not active`);
+		}
 
-  getManagedPool(poolName: string): ManagedPool {
-    const managedPool = this.pools.get(poolName);
-    if (!managedPool) {
-      throw new Error(`Pool ${poolName} not found`);
-    }
-    return managedPool;
-  }
+		return managedPool.pool;
+	}
 
-  async getPoolStatistics(poolName: string): Promise<PoolStatistics> {
-    const managedPool = this.getManagedPool(poolName);
-    
-    if (managedPool.type === 'enterprise') {
-      const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
-      return enterprisePool.getPoolStatistics();
-    } else {
-      const basicPool = managedPool.pool as ConnectionPool;
-      const stats = await basicPool.getPoolStatistics();
-      
-      if (!stats) {
-        throw new Error(`Unable to retrieve statistics for pool ${poolName}`);
-      }
+	getManagedPool(poolName: string): ManagedPool {
+		const managedPool = this.pools.get(poolName);
+		if (!managedPool) {
+			throw new Error(`Pool ${poolName} not found`);
+		}
+		return managedPool;
+	}
 
-      // Convert basic pool stats to PoolStatistics format
-      return {
-        poolName: stats.poolName,
-        poolId: managedPool.poolId,
-        totalConnections: stats.totalConnections,
-        availableConnections: stats.availableConnections,
-        borrowedConnections: stats.borrowedConnections,
-        peakConnections: stats.peakConnections,
-        connectionsCreated: stats.connectionsCreated,
-        connectionsClosed: stats.connectionsClosed,
-        failedConnections: stats.failedConnections,
-        connectionWaitTime: 0,
-        connectionBorrowTime: 0,
-        cumulativeConnectionBorrowTime: 0,
-        cumulativeConnectionReturnTime: 0,
-        averageConnectionBorrowTime: 0,
-        maxConnectionBorrowTime: 0,
-        connectionLeaks: 0,
-        validationErrors: 0,
-        racFailovers: 0,
-        poolHealth: 'HEALTHY',
-        lastHealthCheck: new Date()
-      };
-    }
-  }
+	async getPoolStatistics(poolName: string): Promise<PoolStatistics> {
+		const managedPool = this.getManagedPool(poolName);
 
-  async getAllPoolStatistics(): Promise<{ [poolName: string]: PoolStatistics }> {
-    const stats: { [poolName: string]: PoolStatistics } = {};
-    
-    const promises = Array.from(this.pools.entries()).map(async ([poolName, managedPool]) => {
-      try {
-        if (managedPool.isActive) {
-          stats[poolName] = await this.getPoolStatistics(poolName);
-        }
-      } catch (error) {
-        console.error(`Failed to get stats for pool ${poolName}:`, error.message);
-      }
-    });
+		if (managedPool.type === 'enterprise') {
+			const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
+			return enterprisePool.getPoolStatistics();
+		} else {
+			const basicPool = managedPool.pool as ConnectionPool;
+			const stats = await basicPool.getPoolStatistics();
 
-    await Promise.all(promises);
-    return stats;
-  }
+			if (!stats) {
+				throw new Error(`Unable to retrieve statistics for pool ${poolName}`);
+			}
 
-  async getManagerStatistics(): Promise<PoolManagerStatistics> {
-    const allStats = await this.getAllPoolStatistics();
-    
-    let totalConnections = 0;
-    let totalAvailableConnections = 0;
-    let totalBorrowedConnections = 0;
-    let healthyPools = 0;
-    let unhealthyPools = 0;
-    let basicPools = 0;
-    let enterprisePools = 0;
+			// Convert basic pool stats to PoolStatistics format
+			return {
+				poolName: stats.poolName,
+				poolId: managedPool.poolId,
+				totalConnections: stats.totalConnections,
+				availableConnections: stats.availableConnections,
+				borrowedConnections: stats.borrowedConnections,
+				peakConnections: stats.peakConnections,
+				connectionsCreated: stats.connectionsCreated,
+				connectionsClosed: stats.connectionsClosed,
+				failedConnections: stats.failedConnections,
+				connectionWaitTime: 0,
+				connectionBorrowTime: 0,
+				cumulativeConnectionBorrowTime: 0,
+				cumulativeConnectionReturnTime: 0,
+				averageConnectionBorrowTime: 0,
+				maxConnectionBorrowTime: 0,
+				connectionLeaks: 0,
+				validationErrors: 0,
+				racFailovers: 0,
+				poolHealth: 'HEALTHY',
+				lastHealthCheck: new Date(),
+			};
+		}
+	}
 
-    for (const [poolName, stats] of Object.entries(allStats)) {
-      const managedPool = this.pools.get(poolName);
-      if (managedPool) {
-        totalConnections += stats.totalConnections;
-        totalAvailableConnections += stats.availableConnections;
-        totalBorrowedConnections += stats.borrowedConnections;
+	async getAllPoolStatistics(): Promise<{ [poolName: string]: PoolStatistics }> {
+		const stats: { [poolName: string]: PoolStatistics } = {};
 
-        if (stats.poolHealth === 'HEALTHY') {
-          healthyPools++;
-        } else {
-          unhealthyPools++;
-        }
+		const promises = Array.from(this.pools.entries()).map(async ([poolName, managedPool]) => {
+			try {
+				if (managedPool.isActive) {
+					stats[poolName] = await this.getPoolStatistics(poolName);
+				}
+			} catch (error) {
+				console.error(`Failed to get stats for pool ${poolName}:`, error.message);
+			}
+		});
 
-        if (managedPool.type === 'basic') {
-          basicPools++;
-        } else {
-          enterprisePools++;
-        }
-      }
-    }
+		await Promise.all(promises);
+		return stats;
+	}
 
-    const activePools = Array.from(this.pools.values()).filter(p => p.isActive).length;
-    const inactivePools = this.pools.size - activePools;
+	async getManagerStatistics(): Promise<PoolManagerStatistics> {
+		const allStats = await this.getAllPoolStatistics();
 
-    return {
-      totalPools: this.pools.size,
-      activePools,
-      inactivePools,
-      healthyPools,
-      unhealthyPools,
-      totalConnections,
-      totalAvailableConnections,
-      totalBorrowedConnections,
-      poolTypes: {
-        basic: basicPools,
-        enterprise: enterprisePools
-      },
-      lastUpdateTime: new Date()
-    };
-  }
+		let totalConnections = 0;
+		let totalAvailableConnections = 0;
+		let totalBorrowedConnections = 0;
+		let healthyPools = 0;
+		let unhealthyPools = 0;
+		let basicPools = 0;
+		let enterprisePools = 0;
 
-  async getConnection(
-    poolName: string, 
-    options: PoolOperationOptions = {}
-  ): Promise<JdbcConnection> {
-    const managedPool = this.getManagedPool(poolName);
-    const { timeout, retryAttempts = 3, failFast = false } = options;
+		for (const [poolName, stats] of Object.entries(allStats)) {
+			const managedPool = this.pools.get(poolName);
+			if (managedPool) {
+				totalConnections += stats.totalConnections;
+				totalAvailableConnections += stats.availableConnections;
+				totalBorrowedConnections += stats.borrowedConnections;
 
-    if (managedPool.type === 'enterprise') {
-      const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
-      
-      if (retryAttempts > 1 && !failFast) {
-        return enterprisePool.getConnectionWithRetry(retryAttempts, 1000);
-      } else {
-        return enterprisePool.getConnection(undefined, { timeout });
-      }
-    } else {
-      const basicPool = managedPool.pool as ConnectionPool;
-      return basicPool.getConnection({ timeout });
-    }
-  }
+				if (stats.poolHealth === 'HEALTHY') {
+					healthyPools++;
+				} else {
+					unhealthyPools++;
+				}
 
-  async performHealthCheck(poolName?: string): Promise<PoolHealthSummary[]> {
-    const poolsToCheck = poolName 
-      ? [this.getManagedPool(poolName)]
-      : Array.from(this.pools.values()).filter(p => p.isActive);
+				if (managedPool.type === 'basic') {
+					basicPools++;
+				} else {
+					enterprisePools++;
+				}
+			}
+		}
 
-    const healthSummaries: PoolHealthSummary[] = [];
+		const activePools = Array.from(this.pools.values()).filter(p => p.isActive).length;
+		const inactivePools = this.pools.size - activePools;
 
-    for (const managedPool of poolsToCheck) {
-      try {
-        let isHealthy = true;
-        let healthScore: number | undefined;
-        let issues: string[] = [];
-        let warnings: string[] = [];
-        let connectionStats = {
-          total: 0,
-          available: 0,
-          borrowed: 0,
-          peak: 0
-        };
+		return {
+			totalPools: this.pools.size,
+			activePools,
+			inactivePools,
+			healthyPools,
+			unhealthyPools,
+			totalConnections,
+			totalAvailableConnections,
+			totalBorrowedConnections,
+			poolTypes: {
+				basic: basicPools,
+				enterprise: enterprisePools,
+			},
+			lastUpdateTime: new Date(),
+		};
+	}
 
-        if (managedPool.type === 'enterprise') {
-          const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
-          const healthCheck = await enterprisePool.performHealthCheck();
-          
-          isHealthy = healthCheck.isHealthy;
-          healthScore = healthCheck.score;
-          issues = healthCheck.issues;
-          warnings = healthCheck.warnings;
+	async getConnection(
+		poolName: string,
+		options: PoolOperationOptions = {},
+	): Promise<JdbcConnection> {
+		const managedPool = this.getManagedPool(poolName);
+		const { timeout, retryAttempts = 3, failFast = false } = options;
 
-          const stats = await enterprisePool.getPoolStatistics();
-          connectionStats = {
-            total: stats.totalConnections,
-            available: stats.availableConnections,
-            borrowed: stats.borrowedConnections,
-            peak: stats.peakConnections
-          };
-        } else {
-          // Basic pool health check
-          const basicPool = managedPool.pool as ConnectionPool;
-          const stats = await basicPool.getPoolStatistics();
-          
-          if (stats) {
-            connectionStats = {
-              total: stats.totalConnections,
-              available: stats.availableConnections,
-              borrowed: stats.borrowedConnections,
-              peak: stats.peakConnections
-            };
+		if (managedPool.type === 'enterprise') {
+			const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
 
-            // Simple health check for basic pools
-            if (stats.availableConnections === 0 && stats.borrowedConnections >= stats.totalConnections) {
-              isHealthy = false;
-              issues.push('Pool exhausted - no available connections');
-            }
-          } else {
-            isHealthy = false;
-            issues.push('Unable to retrieve pool statistics');
-          }
-        }
+			if (retryAttempts > 1 && !failFast) {
+				return enterprisePool.getConnectionWithRetry(retryAttempts, 1000);
+			} else {
+				return enterprisePool.getConnection(undefined, { timeout });
+			}
+		} else {
+			const basicPool = managedPool.pool as ConnectionPool;
+			return basicPool.getConnection({ timeout });
+		}
+	}
 
-        managedPool.lastHealthCheck = new Date();
+	async performHealthCheck(poolName?: string): Promise<PoolHealthSummary[]> {
+		const poolsToCheck = poolName
+			? [this.getManagedPool(poolName)]
+			: Array.from(this.pools.values()).filter(p => p.isActive);
 
-        healthSummaries.push({
-          poolName: managedPool.name,
-          poolId: managedPool.poolId,
-          type: managedPool.type,
-          isHealthy,
-          healthScore,
-          issues,
-          warnings,
-          lastCheck: managedPool.lastHealthCheck,
-          connectionStats
-        });
+		const healthSummaries: PoolHealthSummary[] = [];
 
-      } catch (error) {
-        healthSummaries.push({
-          poolName: managedPool.name,
-          poolId: managedPool.poolId,
-          type: managedPool.type,
-          isHealthy: false,
-          issues: [`Health check failed: ${error.message}`],
-          warnings: [],
-          lastCheck: new Date(),
-          connectionStats: {
-            total: 0,
-            available: 0,
-            borrowed: 0,
-            peak: 0
-          }
-        });
-      }
-    }
+		for (const managedPool of poolsToCheck) {
+			try {
+				let isHealthy = true;
+				let healthScore: number | undefined;
+				let issues: string[] = [];
+				let warnings: string[] = [];
+				let connectionStats = {
+					total: 0,
+					available: 0,
+					borrowed: 0,
+					peak: 0,
+				};
 
-    return healthSummaries;
-  }
+				if (managedPool.type === 'enterprise') {
+					const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
+					const healthCheck = await enterprisePool.performHealthCheck();
 
-  async refreshPool(poolName: string): Promise<void> {
-    const managedPool = this.getManagedPool(poolName);
-    
-    if (managedPool.type === 'enterprise') {
-      const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
-      await enterprisePool.refreshPool();
-    } else {
-      // Basic pools don't have refresh capability
-      console.warn(`Refresh operation not supported for basic pool: ${poolName}`);
-    }
-  }
+					isHealthy = healthCheck.isHealthy;
+					healthScore = healthCheck.score;
+					issues = healthCheck.issues;
+					warnings = healthCheck.warnings;
 
-  async purgePool(poolName: string): Promise<void> {
-    const managedPool = this.getManagedPool(poolName);
-    
-    if (managedPool.type === 'enterprise') {
-      const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
-      await enterprisePool.purgePool();
-    } else {
-      console.warn(`Purge operation not supported for basic pool: ${poolName}`);
-    }
-  }
+					const stats = await enterprisePool.getPoolStatistics();
+					connectionStats = {
+						total: stats.totalConnections,
+						available: stats.availableConnections,
+						borrowed: stats.borrowedConnections,
+						peak: stats.peakConnections,
+					};
+				} else {
+					// Basic pool health check
+					const basicPool = managedPool.pool as ConnectionPool;
+					const stats = await basicPool.getPoolStatistics();
 
-  async closePool(poolName: string): Promise<void> {
-    const managedPool = this.pools.get(poolName);
-    if (managedPool) {
-      try {
-        await managedPool.pool.close();
-        managedPool.isActive = false;
-        this.pools.delete(poolName);
-        
-        console.info(`Pool ${poolName} closed successfully`);
-        
-      } catch (error) {
-        throw ErrorHandler.handleJdbcError(error, `Failed to close pool: ${poolName}`);
-      }
-    }
-  }
+					if (stats) {
+						connectionStats = {
+							total: stats.totalConnections,
+							available: stats.availableConnections,
+							borrowed: stats.borrowedConnections,
+							peak: stats.peakConnections,
+						};
 
-  async closeAllPools(): Promise<void> {
-    const closePromises = Array.from(this.pools.keys()).map(async (poolName) => {
-      try {
-        await this.closePool(poolName);
-      } catch (error) {
-        console.error(`Failed to close pool ${poolName}:`, error.message);
-      }
-    });
+						// Simple health check for basic pools
+						if (
+							stats.availableConnections === 0 &&
+							stats.borrowedConnections >= stats.totalConnections
+						) {
+							isHealthy = false;
+							issues.push('Pool exhausted - no available connections');
+						}
+					} else {
+						isHealthy = false;
+						issues.push('Unable to retrieve pool statistics');
+					}
+				}
 
-    await Promise.all(closePromises);
-    console.info('All pools closed');
-  }
+				managedPool.lastHealthCheck = new Date();
 
-  // Pool discovery and filtering
-  findPoolsByTag(tag: string): ManagedPool[] {
-    return Array.from(this.pools.values()).filter(pool => 
-      pool.tags && pool.tags.includes(tag)
-    );
-  }
+				healthSummaries.push({
+					poolName: managedPool.name,
+					poolId: managedPool.poolId,
+					type: managedPool.type,
+					isHealthy,
+					healthScore,
+					issues,
+					warnings,
+					lastCheck: managedPool.lastHealthCheck,
+					connectionStats,
+				});
+			} catch (error) {
+				healthSummaries.push({
+					poolName: managedPool.name,
+					poolId: managedPool.poolId,
+					type: managedPool.type,
+					isHealthy: false,
+					issues: [`Health check failed: ${error.message}`],
+					warnings: [],
+					lastCheck: new Date(),
+					connectionStats: {
+						total: 0,
+						available: 0,
+						borrowed: 0,
+						peak: 0,
+					},
+				});
+			}
+		}
 
-  findPoolsByType(type: 'basic' | 'enterprise'): ManagedPool[] {
-    return Array.from(this.pools.values()).filter(pool => pool.type === type);
-  }
+		return healthSummaries;
+	}
 
-  getPoolsByHealth(healthy: boolean): Promise<string[]> {
-    return this.performHealthCheck().then(summaries => 
-      summaries
-        .filter(summary => summary.isHealthy === healthy)
-        .map(summary => summary.poolName)
-    );
-  }
+	async refreshPool(poolName: string): Promise<void> {
+		const managedPool = this.getManagedPool(poolName);
 
-  listPools(): string[] {
-    return Array.from(this.pools.keys());
-  }
+		if (managedPool.type === 'enterprise') {
+			const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
+			await enterprisePool.refreshPool();
+		} else {
+			// Basic pools don't have refresh capability
+			console.warn(`Refresh operation not supported for basic pool: ${poolName}`);
+		}
+	}
 
-  listActivePools(): string[] {
-    return Array.from(this.pools.values())
-      .filter(pool => pool.isActive)
-      .map(pool => pool.name);
-  }
+	async purgePool(poolName: string): Promise<void> {
+		const managedPool = this.getManagedPool(poolName);
 
-  getPoolCount(): number {
-    return this.pools.size;
-  }
+		if (managedPool.type === 'enterprise') {
+			const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
+			await enterprisePool.purgePool();
+		} else {
+			console.warn(`Purge operation not supported for basic pool: ${poolName}`);
+		}
+	}
 
-  getActivePoolCount(): number {
-    return Array.from(this.pools.values()).filter(pool => pool.isActive).length;
-  }
+	async closePool(poolName: string): Promise<void> {
+		const managedPool = this.pools.get(poolName);
+		if (managedPool) {
+			try {
+				await managedPool.pool.close();
+				managedPool.isActive = false;
+				this.pools.delete(poolName);
 
-  // Pool lifecycle management
-  async restartPool(poolName: string): Promise<string> {
-    const managedPool = this.getManagedPool(poolName);
-    
-    // Store configuration
-    const { config, poolConfig, type, tags, description } = managedPool;
-    
-    // Close existing pool
-    await this.closePool(poolName);
-    
-    // Create new pool with same configuration
-    return this.createPool(poolName, config, poolConfig, { type, tags, description });
-  }
+				console.info(`Pool ${poolName} closed successfully`);
+			} catch (error) {
+				throw ErrorHandler.handleJdbcError(error, `Failed to close pool: ${poolName}`);
+			}
+		}
+	}
 
-  async scalePool(poolName: string, newMaxSize: number): Promise<void> {
-    const managedPool = this.getManagedPool(poolName);
-    
-    // Update pool configuration
-    if (managedPool.type === 'enterprise') {
-      const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
-      const currentConfig = enterprisePool.getConfiguration();
-      
-      // This would require pool reconfiguration functionality
-      // For now, we'll suggest a restart with new configuration
-      throw new Error('Pool scaling requires restart. Use restartPool with updated configuration.');
-    } else {
-      throw new Error('Basic pools do not support runtime scaling');
-    }
-  }
+	async closeAllPools(): Promise<void> {
+		const closePromises = Array.from(this.pools.keys()).map(async poolName => {
+			try {
+				await this.closePool(poolName);
+			} catch (error) {
+				console.error(`Failed to close pool ${poolName}:`, error.message);
+			}
+		});
 
-  // Health monitoring
-  private startHealthMonitoring(): void {
-    this.healthMonitorInterval = setInterval(async () => {
-      try {
-        const healthSummaries = await this.performHealthCheck();
-        
-        const unhealthyPools = healthSummaries.filter(summary => !summary.isHealthy);
-        
-        if (unhealthyPools.length > 0) {
-          console.warn(`Health check found ${unhealthyPools.length} unhealthy pools:`, 
-            unhealthyPools.map(p => ({ name: p.poolName, issues: p.issues }))
-          );
-        }
-        
-      } catch (error) {
-        console.error('Health monitoring failed:', error.message);
-      }
-    }, this.HEALTH_CHECK_INTERVAL);
-  }
+		await Promise.all(closePromises);
+		console.info('All pools closed');
+	}
 
-  async shutdown(): Promise<void> {
-    // Stop health monitoring
-    if (this.healthMonitorInterval) {
-      clearInterval(this.healthMonitorInterval);
-      this.healthMonitorInterval = undefined;
-    }
+	// Pool discovery and filtering
+	findPoolsByTag(tag: string): ManagedPool[] {
+		return Array.from(this.pools.values()).filter(pool => pool.tags && pool.tags.includes(tag));
+	}
 
-    // Close all pools
-    await this.closeAllPools();
-    
-    console.info('PoolManager shutdown complete');
-  }
+	findPoolsByType(type: 'basic' | 'enterprise'): ManagedPool[] {
+		return Array.from(this.pools.values()).filter(pool => pool.type === type);
+	}
 
-  // Utility methods
-  getPoolInfo(poolName: string): {
-    pool: ManagedPool;
-    runtime: {
-      uptimeMs: number;
-      lastHealthCheck?: Date;
-    };
-  } {
-    const pool = this.getManagedPool(poolName);
-    
-    return {
-      pool,
-      runtime: {
-        uptimeMs: Date.now() - pool.createdAt.getTime(),
-        lastHealthCheck: pool.lastHealthCheck
-      }
-    };
-  }
+	getPoolsByHealth(healthy: boolean): Promise<string[]> {
+		return this.performHealthCheck().then(summaries =>
+			summaries.filter(summary => summary.isHealthy === healthy).map(summary => summary.poolName),
+		);
+	}
 
-  async exportPoolConfigurations(): Promise<{
-    [poolName: string]: {
-      config: OracleJdbcConfig;
-      poolConfig: PoolConfiguration | AdvancedPoolConfiguration;
-      type: 'basic' | 'enterprise';
-      tags?: string[];
-      description?: string;
-    };
-  }> {
-    const configurations: any = {};
-    
-    for (const [poolName, managedPool] of this.pools) {
-      configurations[poolName] = {
-        config: managedPool.config,
-        poolConfig: managedPool.poolConfig,
-        type: managedPool.type,
-        tags: managedPool.tags,
-        description: managedPool.description
-      };
-    }
-    
-    return configurations;
-  }
+	listPools(): string[] {
+		return Array.from(this.pools.keys());
+	}
+
+	listActivePools(): string[] {
+		return Array.from(this.pools.values())
+			.filter(pool => pool.isActive)
+			.map(pool => pool.name);
+	}
+
+	getPoolCount(): number {
+		return this.pools.size;
+	}
+
+	getActivePoolCount(): number {
+		return Array.from(this.pools.values()).filter(pool => pool.isActive).length;
+	}
+
+	// Pool lifecycle management
+	async restartPool(poolName: string): Promise<string> {
+		const managedPool = this.getManagedPool(poolName);
+
+		// Store configuration
+		const { config, poolConfig, type, tags, description } = managedPool;
+
+		// Close existing pool
+		await this.closePool(poolName);
+
+		// Create new pool with same configuration
+		return this.createPool(poolName, config, poolConfig, { type, tags, description });
+	}
+
+	async scalePool(poolName: string, newMaxSize: number): Promise<void> {
+		const managedPool = this.getManagedPool(poolName);
+
+		// Update pool configuration
+		if (managedPool.type === 'enterprise') {
+			const enterprisePool = managedPool.pool as EnterpriseConnectionPool;
+			const currentConfig = enterprisePool.getConfiguration();
+
+			// This would require pool reconfiguration functionality
+			// For now, we'll suggest a restart with new configuration
+			throw new Error('Pool scaling requires restart. Use restartPool with updated configuration.');
+		} else {
+			throw new Error('Basic pools do not support runtime scaling');
+		}
+	}
+
+	// Health monitoring
+	private startHealthMonitoring(): void {
+		this.healthMonitorInterval = setInterval(async () => {
+			try {
+				const healthSummaries = await this.performHealthCheck();
+
+				const unhealthyPools = healthSummaries.filter(summary => !summary.isHealthy);
+
+				if (unhealthyPools.length > 0) {
+					console.warn(
+						`Health check found ${unhealthyPools.length} unhealthy pools:`,
+						unhealthyPools.map(p => ({ name: p.poolName, issues: p.issues })),
+					);
+				}
+			} catch (error) {
+				console.error('Health monitoring failed:', error.message);
+			}
+		}, this.HEALTH_CHECK_INTERVAL);
+	}
+
+	async shutdown(): Promise<void> {
+		// Stop health monitoring
+		if (this.healthMonitorInterval) {
+			clearInterval(this.healthMonitorInterval);
+			this.healthMonitorInterval = undefined;
+		}
+
+		// Close all pools
+		await this.closeAllPools();
+
+		console.info('PoolManager shutdown complete');
+	}
+
+	// Utility methods
+	getPoolInfo(poolName: string): {
+		pool: ManagedPool;
+		runtime: {
+			uptimeMs: number;
+			lastHealthCheck?: Date;
+		};
+	} {
+		const pool = this.getManagedPool(poolName);
+
+		return {
+			pool,
+			runtime: {
+				uptimeMs: Date.now() - pool.createdAt.getTime(),
+				lastHealthCheck: pool.lastHealthCheck,
+			},
+		};
+	}
+
+	async exportPoolConfigurations(): Promise<{
+		[poolName: string]: {
+			config: OracleJdbcConfig;
+			poolConfig: PoolConfiguration | AdvancedPoolConfiguration;
+			type: 'basic' | 'enterprise';
+			tags?: string[];
+			description?: string;
+		};
+	}> {
+		const configurations: any = {};
+
+		for (const [poolName, managedPool] of this.pools) {
+			configurations[poolName] = {
+				config: managedPool.config,
+				poolConfig: managedPool.poolConfig,
+				type: managedPool.type,
+				tags: managedPool.tags,
+				description: managedPool.description,
+			};
+		}
+
+		return configurations;
+	}
 }

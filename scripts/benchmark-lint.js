@@ -14,4 +14,4 @@ const start2 = Date.now();
 execSync('npm run lint', { stdio: 'inherit' });
 const time2 = Date.now() - start2;
 
-console.log(`📊 Performance improvement: ${Math.round((1 - time2/time1) * 100)}%`);
+console.log(`📊 Performance improvement: ${Math.round((1 - time2 / time1) * 100)}%`);

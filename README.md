@@ -5,8 +5,6 @@
 [![npm version](https://img.shields.io/npm/v/n8n-nodes-oracle-jdbc.svg)](https://www.npmjs.com/package/n8n-nodes-oracle-jdbc)  
 [![npm downloads](https://img.shields.io/npm/dt/n8n-nodes-oracle-jdbc.svg)](https://www.npmjs.com/package/n8n-nodes-oracle-jdbc)
 
-
-
 <details close>
 <summary>🇺🇸 English</summary>
 
@@ -26,15 +24,15 @@ Enterprise-grade solution for integrating n8n with Oracle databases using offici
 
 ## ⭐ Main Features
 
-- **Oracle Enterprise JDBC:** Thin, UCP pooling, failover, Oracle RAC and ADG  
-- **Advanced Pooling:** Configurable, monitorable, and intelligent pools  
-- **Batch Operations:** Massive inserts/updates (bulk), optimized processing  
-- **Transaction Management:** ACID block with savepoint, partial rollback, isolation  
-- **Full PL/SQL Support:** Procedures, functions, packages, complete IN/OUT control  
-- **Cloud Support:** OCI, Oracle Wallet, IAM integration  
-- **Connection Labeling:** Fine-grained auditing and session traceability  
-- **Security:** SSL/TLS, Wallet, protected logs  
-- **Monitoring:** Pool statistics, health checks, detailed logging  
+- **Oracle Enterprise JDBC:** Thin, UCP pooling, failover, Oracle RAC and ADG
+- **Advanced Pooling:** Configurable, monitorable, and intelligent pools
+- **Batch Operations:** Massive inserts/updates (bulk), optimized processing
+- **Transaction Management:** ACID block with savepoint, partial rollback, isolation
+- **Full PL/SQL Support:** Procedures, functions, packages, complete IN/OUT control
+- **Cloud Support:** OCI, Oracle Wallet, IAM integration
+- **Connection Labeling:** Fine-grained auditing and session traceability
+- **Security:** SSL/TLS, Wallet, protected logs
+- **Monitoring:** Pool statistics, health checks, detailed logging
 
 ---
 
@@ -53,19 +51,19 @@ npm install n8n-nodes-oracle-jdbc
 
 In n8n, create credentials with the following parameters:
 
-| Field             | Example                           |
-| ----------------- | --------------------------------- |
-| Host              | `oracle-srv.example.com`          |
-| Port              | `1521`                            |
-| Connection Type   | `service` / `sid` / `tns`         |
-| Service Name      | `ORCL`, `PROD`, `XEPDB1`          |
-| Username          | `app_user`                        |
-| Password          | `**********`                      |
-| Connection Options| Timeout, SSL, wallet, schema, ... |
+| Field              | Example                           |
+| ------------------ | --------------------------------- |
+| Host               | `oracle-srv.example.com`          |
+| Port               | `1521`                            |
+| Connection Type    | `service` / `sid` / `tns`         |
+| Service Name       | `ORCL`, `PROD`, `XEPDB1`          |
+| Username           | `app_user`                        |
+| Password           | `**********`                      |
+| Connection Options | Timeout, SSL, wallet, schema, ... |
 
 #### Connection String Examples
 
-- Service: `oracle1.company.com:1521/PROD`  
+- Service: `oracle1.company.com:1521/PROD`
 - TNS: `(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=dbhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=MYDB)))`
 
 ---
@@ -73,6 +71,7 @@ In n8n, create credentials with the following parameters:
 ## 🚀 Usage Examples
 
 ### **Full Transaction**
+
 ```sql
 INSERT INTO orders (customer_id, amount) VALUES (:cust_id, :amount);
 UPDATE stock SET qty = qty - :qty WHERE product_id = :prod_id;
@@ -81,28 +80,32 @@ DELETE FROM cart WHERE customer_id = :cust_id;
 ```
 
 ### **Optimized Bulk Insert**
+
 Define operation type as "batch", target table, and data batch:
+
 ```json
 {
-  "operationType": "batch",
-  "tableName": "customers",
-  "batchSize": 1000
+	"operationType": "batch",
+	"tableName": "customers",
+	"batchSize": 1000
 }
 ```
 
 ### **Procedure Execution**
+
 ```json
 {
-  "operationType": "procedure",
-  "procedureName": "update_price",
-  "parameters": [
-    { "name": "p_product_id", "type": "IN", "dataType": "NUMBER", "value": 123 },
-    { "name": "p_new_price", "type": "IN", "dataType": "NUMBER", "value": 72.5 }
-  ]
+	"operationType": "procedure",
+	"procedureName": "update_price",
+	"parameters": [
+		{ "name": "p_product_id", "type": "IN", "dataType": "NUMBER", "value": 123 },
+		{ "name": "p_new_price", "type": "IN", "dataType": "NUMBER", "value": 72.5 }
+	]
 }
 ```
 
 ### **Enterprise Pooling**
+
 ```ts
 import { PoolConfigurationPresets } from './core/AdvancedPoolConfig';
 
@@ -113,31 +116,31 @@ const poolConfig = PoolConfigurationPresets.getHighVolumeOLTP();
 
 ## 🏢 Intelligent Connection Pools
 
-| Type        | Min/Max | Timeout | Use Case                 |
-|-------------|---------|---------|--------------------------|
-| Standard    | 5/20    | 30s     | General workloads         |
-| High OLTP   | 10/50   | 5s      | Very high transaction volume |
-| Analytics   | 5/20    | 300s    | Reports and queries       |
-| Cloud       | 5/25    | 60s     | Integrated with OCI/Wallet|
-| RAC/ADG     | 8/40    | 10s     | High availability setups  |
+| Type      | Min/Max | Timeout | Use Case                     |
+| --------- | ------- | ------- | ---------------------------- |
+| Standard  | 5/20    | 30s     | General workloads            |
+| High OLTP | 10/50   | 5s      | Very high transaction volume |
+| Analytics | 5/20    | 300s    | Reports and queries          |
+| Cloud     | 5/25    | 60s     | Integrated with OCI/Wallet   |
+| RAC/ADG   | 8/40    | 10s     | High availability setups     |
 
 ---
 
 ## 📊 Monitoring and Performance
 
-- Batch tested with **hundreds of thousands of records**  
-- RAC/ADG failover supported via `EnterpriseConnectionPool`  
-- Pool manager with statistics: connections, borrowed, available, peak, failed  
-- Configurable statement cache, customizable health-check  
+- Batch tested with **hundreds of thousands of records**
+- RAC/ADG failover supported via `EnterpriseConnectionPool`
+- Pool manager with statistics: connections, borrowed, available, peak, failed
+- Configurable statement cache, customizable health-check
 
 ---
 
 ## 🛡️ Security
 
-- Native support for **SSL/TLS**, Wallet, CA, client certs, etc.  
-- **Connection Labeling** for session-state auditing  
-- Mandatory bind parameters (SQL Injection proof)  
-- Detailed logs and stack traces for enterprise troubleshooting  
+- Native support for **SSL/TLS**, Wallet, CA, client certs, etc.
+- **Connection Labeling** for session-state auditing
+- Mandatory bind parameters (SQL Injection proof)
+- Detailed logs and stack traces for enterprise troubleshooting
 
 ---
 
@@ -200,10 +203,10 @@ npm run clean             # Cleanup dist folder
 Contributions are **welcome**!  
 Follow this flow:
 
-1. Fork  
-2. Feature branch: `feature/new-feature`  
-3. Commit and push  
-4. Submit a descriptive pull request  
+1. Fork
+2. Feature branch: `feature/new-feature`
+3. Commit and push
+4. Submit a descriptive pull request
 
 Suggestions: bug fixes, examples, optimizations, new features, docs, tests.
 
@@ -216,9 +219,10 @@ If this project helps you, consider supporting it!
 <div align="center">
 
 ### PIX:
-<img src="image/README/qrcode-pix-jonatas.mei@outlook.com.png" alt="QR Code PIX" width="150" />  
 
-**PIX Key:** jonatas.mei@outlook.com  
+<img src="image/README/qrcode-pix-jonatas.mei@outlook.com.png" alt="QR Code PIX" width="150" />
+
+**PIX Key:** jonatas.mei@outlook.com
 
 ### Cryptocurrency Donation
 
@@ -260,7 +264,6 @@ If this project helps you, consider supporting it!
     </td>
   </tr>
 </table>
-
 
 ---
 
@@ -307,21 +310,21 @@ SOFTWARE.
 
 ## 📚 Links
 
-- [Oracle Database Documentation](https://docs.oracle.com/en/database/oracle/oracle-database/)  
-- [n8n Community Nodes](https://docs.n8n.io/integrations/community-nodes/)  
-- [Report Issues](https://github.com/jonales/n8n-nodes-oracle-jdbc/issues)  
-- [Discussions](https://github.com/jonales/n8n-nodes-oracle-jdbc/discussions)  
+- [Oracle Database Documentation](https://docs.oracle.com/en/database/oracle/oracle-database/)
+- [n8n Community Nodes](https://docs.n8n.io/integrations/community-nodes/)
+- [Report Issues](https://github.com/jonales/n8n-nodes-oracle-jdbc/issues)
+- [Discussions](https://github.com/jonales/n8n-nodes-oracle-jdbc/discussions)
 
 ---
 
 <div align="center">
 
-**⭐ Star if you like it!**  
+**⭐ Star if you like it!**
 
 [![GitHub stars](https://img.shields.io/github/stars/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Star)](https://github.com/jonales/n8n-nodes-oracle-jdbc)  
-[![GitHub forks](https://img.shields.io/github/forks/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Fork)](https://github.com/jonales/n8n-nodes-oracle-jdbc/fork)  
+[![GitHub forks](https://img.shields.io/github/forks/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Fork)](https://github.com/jonales/n8n-nodes-oracle-jdbc/fork)
 
-Made with ❤️ 100% original, no third-party forks!  
+Made with ❤️ 100% original, no third-party forks!
 
 </div>
 
@@ -375,15 +378,15 @@ npm install n8n-nodes-oracle-jdbc
 
 No n8n, crie credenciais com os parâmetros:
 
-| Campo             | Exemplo                           |
-| ----------------- | --------------------------------- |
-| Host              | `oracle-srv.exemplo.com`          |
-| Port              | `1521`                            |
-| Connection Type   | `service`/`sid`/`tns`             |
-| Service Name      | `ORCL`, `PROD`, `XEPDB1`          |
-| Username          | `app_user`                        |
-| Password          | `**********`                      |
-| Connection Options| Timeout, SSL, wallet, schema, ... |
+| Campo              | Exemplo                           |
+| ------------------ | --------------------------------- |
+| Host               | `oracle-srv.exemplo.com`          |
+| Port               | `1521`                            |
+| Connection Type    | `service`/`sid`/`tns`             |
+| Service Name       | `ORCL`, `PROD`, `XEPDB1`          |
+| Username           | `app_user`                        |
+| Password           | `**********`                      |
+| Connection Options | Timeout, SSL, wallet, schema, ... |
 
 #### Exemplos de Connection String
 
@@ -395,6 +398,7 @@ No n8n, crie credenciais com os parâmetros:
 ## 🚀 Exemplos de Uso
 
 ### **Transação Completa**
+
 ```sql
 INSERT INTO pedidos (cliente_id, valor) VALUES (:cli_id, :valor);
 UPDATE estoque SET qtd = qtd - :qtd WHERE produto_id = :prod_id;
@@ -403,24 +407,27 @@ DELETE FROM carrinho WHERE cliente_id = :cli_id;
 ```
 
 ### **Bulk Insert Otimizado**
+
 Defina operação "batch", tabela de destino e lote de dados:
+
 ```json
 {
-  "operationType": "batch",
-  "tableName": "customers",
-  "batchSize": 1000
+	"operationType": "batch",
+	"tableName": "customers",
+	"batchSize": 1000
 }
 ```
 
 ### **Execução de Procedure**
+
 ```json
 {
-  "operationType": "procedure",
-  "procedureName": "update_price",
-  "parameters": [
-    { "name": "p_product_id", "type": "IN", "dataType": "NUMBER", "value": 123 },
-    { "name": "p_new_price", "type": "IN", "dataType": "NUMBER", "value": 72.5 }
-  ]
+	"operationType": "procedure",
+	"procedureName": "update_price",
+	"parameters": [
+		{ "name": "p_product_id", "type": "IN", "dataType": "NUMBER", "value": 123 },
+		{ "name": "p_new_price", "type": "IN", "dataType": "NUMBER", "value": 72.5 }
+	]
 }
 ```
 
@@ -436,13 +443,13 @@ const poolConfig = PoolConfigurationPresets.getHighVolumeOLTP();
 
 ## 🏢 Pools de Conexão Inteligentes
 
-| Tipo        | Min/Max | Timeout | Uso                       |
-|-------------|---------|---------|---------------------------|
-| Standard    | 5/20    | 30s     | Workloads gerais          |
-| High OLTP   | 10/50   | 5s      | Altíssimo volume          |
-| Analytics   | 5/20    | 300s    | Relatórios e consultas    |
-| Cloud       | 5/25    | 60s     | Integrado ao OCI/Wallet   |
-| RAC/ADG     | 8/40    | 10s     | Alta disponibilidade real |
+| Tipo      | Min/Max | Timeout | Uso                       |
+| --------- | ------- | ------- | ------------------------- |
+| Standard  | 5/20    | 30s     | Workloads gerais          |
+| High OLTP | 10/50   | 5s      | Altíssimo volume          |
+| Analytics | 5/20    | 300s    | Relatórios e consultas    |
+| Cloud     | 5/25    | 60s     | Integrado ao OCI/Wallet   |
+| RAC/ADG   | 8/40    | 10s     | Alta disponibilidade real |
 
 ---
 
@@ -531,7 +538,7 @@ Siga o fluxo:
 2. Branch de feature: `feature/nova-funcionalidade`
 3. Commit e push
 4. Pull-request explicativo  
-Sugestões: correções, exemplos, otimizações, novos recursos, documentações, testes.
+   Sugestões: correções, exemplos, otimizações, novos recursos, documentações, testes.
 
 ---
 
@@ -542,6 +549,7 @@ Se o projeto te ajuda, considere apoiar!
 <div align="center">
 
 ### PIX:
+
 <img src="image/README/qrcode-pix-jonatas.mei@outlook.com.png" alt="QR Code PIX" width="150" />
 
 **Chave PIX:** jonatas.mei@outlook.com
