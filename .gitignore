@@ -6,6 +6,8 @@
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 
+package-lock.json
+
 # Jest cache
 jest/
 .jest/
