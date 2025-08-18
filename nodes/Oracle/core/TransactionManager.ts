@@ -1,4 +1,4 @@
-import * as java from 'node-java-bridge';
+import * as java from 'java-bridge';
 
 import { JdbcConnection } from '../types/JdbcTypes';
 

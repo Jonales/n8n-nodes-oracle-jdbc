@@ -1,223 +1,175 @@
 {
-	"compilerOptions": {
-		// ==========================================
-		// 🎯 LANGUAGE AND ENVIRONMENT - ORACLE JDBC OPTIMIZED
-		// ==========================================
-		"target": "ES2022",
-		"lib": ["ES2022", "DOM", "ES2022.String"],
-		"module": "CommonJS",
-
-		// ==========================================
-		// 📦 MODULES - N8N STRUCTURE OPTIMIZED
-		// ==========================================
-		"baseUrl": ".",
-		"paths": {
-			// Core application paths
-			"@/*": ["./src/*"],
-			"@nodes/*": ["./nodes/*"],
-			"@credentials/*": ["./credentials/*"],
-			"@types/*": ["./types/*"],
-			"@utils/*": ["./utils/*"],
-			"@core/*": ["./core/*"],
-			"@scripts/*": ["./scripts/*"],
-
-			// Oracle JDBC specific paths
-			"@oracle/*": ["./core/oracle/*"],
-			"@oracle/types/*": ["./types/oracle/*"],
-			"@oracle/pool/*": ["./core/oracle/pool/*"],
-			"@oracle/transaction/*": ["./core/oracle/transaction/*"],
-
-			// N8N specific paths
-			"@n8n/*": ["./nodes/*", "./credentials/*"],
-			"@n8n-types/*": ["./types/n8n/*"]
-		},
-		"rootDir": ".",
-		"rootDirs": [".", "./src", "./nodes", "./credentials", "./core"],
-		"typeRoots": ["./node_modules/@types", "./types", "./types/global"],
-		"types": ["node", "jest", "uuid"],
-
-		// ==========================================
-		// 🚀 EMIT - PERFORMANCE OPTIMIZED
-		// ==========================================
-		"declaration": true,
-		"declarationMap": true,
-		"sourceMap": true,
-		"outDir": "./dist",
-		"removeComments": false,
-		"downlevelIteration": true,
-		"importHelpers": true,
-		"newLine": "lf",
-		"stripInternal": true,
-
-		// ==========================================
-		// 🔗 INTEROP CONSTRAINTS - JAVA BRIDGE COMPATIBLE
-		// ==========================================
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"isolatedModules": true,
-		"verbatimModuleSyntax": false,
-		"allowUmdGlobalAccess": true,
-
-		// ==========================================
-		// 🔒 TYPE CHECKING - ENTERPRISE GRADE
-		// ==========================================
-		"strict": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noImplicitReturns": true,
-		"noFallthroughCasesInSwitch": true,
-		"noUncheckedIndexedAccess": false,
-		"noImplicitOverride": true,
-		"allowUnreachableCode": false,
-		"allowUnusedLabels": false,
-		"exactOptionalPropertyTypes": false,
-		"noImplicitAny": true,
-		"strictNullChecks": true,
-		"strictFunctionTypes": true,
-		"strictBindCallApply": true,
-		"strictPropertyInitialization": true,
-		"noImplicitThis": true,
-		"useUnknownInCatchVariables": true,
-		"noPropertyAccessFromIndexSignature": false,
-		"noImplicitReturns": true,
-
-		// ==========================================
-		// ⚡ PERFORMANCE - CACHE OPTIMIZED
-		// ==========================================
-		"skipLibCheck": true,
-		"skipDefaultLibCheck": true,
-		"incremental": true,
-		"tsBuildInfoFile": "./.cache/tsconfig.tsbuildinfo",
-		"assumeChangesOnlyAffectDirectDependencies": true,
-		"disableReferencedProjectLoad": false,
-		"disableSolutionSearching": false,
-		"disableSourceOfProjectReferenceRedirect": false,
-
-		// ==========================================
-		// 🎨 ADVANCED FEATURES
-		// ==========================================
-		"resolveJsonModule": true,
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
-		"preserveConstEnums": true,
-		"suppressImplicitAnyIndexErrors": false,
-		"allowJs": false,
-		"checkJs": false,
-
-		// ==========================================
-		// 📊 OUTPUT FORMATTING
-		// ==========================================
-		"pretty": true,
-		"preserveWatchOutput": true,
-		"noErrorTruncation": true,
-		"generateCpuProfile": "tsc-profile.cpuprofile"
-	},
-
-	// ==========================================
-	// 📁 PROJECT STRUCTURE
-	// ==========================================
-	"include": [
-		// Core application files
-		"nodes/**/*",
-		"credentials/**/*",
-		"core/**/*",
-		"types/**/*",
-		"utils/**/*",
-		"scripts/**/*.ts",
-		"*.ts",
-
-		// Global type declarations
-		"types/global.d.ts",
-		"types/java.d.ts",
-		"types/oracle.d.ts",
-		"types/n8n-extended.d.ts"
-	],
-
-	"exclude": [
-		// Build outputs
-		"dist/**/*",
-		"lib/**/*",
-
-		// Dependencies
-		"node_modules/**/*",
-
-		// Test and coverage
-		"coverage/**/*",
-		"**/*.test.ts",
-		"**/*.spec.ts",
-		"**/__tests__/**/*",
-
-		// Scripts and configs
-		"scripts/verification-test/**/*",
-		"scripts/**/*.js",
-		"gulpfile.js",
-		"jest.config.js",
-		"*.config.js",
-
-		// Cache and temporary
-		".cache/**/*",
-		"*.tsbuildinfo",
-
-		// IDE and OS
-		".vscode/**/*",
-		".idea/**/*",
-		"**/.DS_Store"
-	],
-
-	// ==========================================
-	// 🔧 TS-NODE CONFIGURATION
-	// ==========================================
-	"ts-node": {
-		"esm": false,
-		"experimentalSpecifierResolution": "node",
-		"transpileOnly": true,
-		"files": true,
-		"skipProject": false,
-		"skipIgnore": false,
-		"preferTsExts": true,
-		"compilerOptions": {
-			"module": "CommonJS",
-			"target": "ES2022",
-			"moduleResolution": "node",
-			"allowJs": true,
-			"resolveJsonModule": true
-		},
-		"require": ["tsconfig-paths/register"]
-	},
-
-	// ==========================================
-	// 👀 WATCH OPTIONS - OPTIMIZED FOR DEVELOPMENT
-	// ==========================================
-	"watchOptions": {
-		"watchFile": "useFsEvents",
-		"watchDirectory": "useFsEvents",
-		"fallbackPolling": "dynamicPriority",
-		"synchronousWatchDirectory": true,
-		"excludeFiles": ["**/*.test.ts", "**/*.spec.ts", "**/*.js.map", "**/*.d.ts.map"],
-		"excludeDirectories": [
-			"**/node_modules",
-			"**/dist",
-			"**/coverage",
-			"**/lib",
-			"**/.cache",
-			"**/scripts/verification-test"
-		]
-	},
-
-	// ==========================================
-	// 🎛️ COMPILER DIAGNOSTICS - DEBUG MODE
-	// ==========================================
-	"compileOnSave": false,
-	"buildOnSave": false,
-
-	// ==========================================
-	// 📋 TYPE ACQUISITION - AUTO DISCOVERY
-	// ==========================================
-	"typeAcquisition": {
-		"enable": true,
-		"include": ["node", "jest", "uuid", "java"],
-		"exclude": ["jquery", "lodash"],
-		"disableFilenameBasedTypeAcquisition": false
-	}
+  "compilerOptions": {
+    // Target e Module
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    
+    // Path Mapping
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@nodes/*": ["./nodes/*"],
+      "@credentials/*": ["./credentials/*"],
+      "@types/*": ["./types/*"],
+      "@utils/*": ["./utils/*"],
+      "@core/*": ["./core/*"],
+      "@scripts/*": ["./scripts/*"],
+      "@oracle/*": ["./core/oracle/*"],
+      "@oracle/types/*": ["./types/oracle/*"],
+      "@oracle/pool/*": ["./core/oracle/pool/*"],
+      "@oracle/transaction/*": ["./core/oracle/transaction/*"],
+      "@n8n/*": ["./nodes/*", "./credentials/*"],
+      "@n8n-types/*": ["./types/n8n/*"]
+    },
+    
+    // Directories
+    "rootDir": ".",
+    "outDir": "./dist",
+    "typeRoots": ["./node_modules/@types", "./types", "./types/global"],
+    "types": ["node", "jest", "uuid"],
+    
+    // Declaration Files
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    
+    // Emit
+    "removeComments": false,
+    "newLine": "lf",
+    "stripInternal": true,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    
+    // Module Resolution
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowUmdGlobalAccess": true,
+    
+    // Type Checking - Strict
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    
+    // Type Checking - Additional
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    
+    // Advanced
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    
+    // Performance
+    "incremental": true,
+    "tsBuildInfoFile": "./.cache/tsconfig.tsbuildinfo",
+    "assumeChangesOnlyAffectDirectDependencies": true,
+    "disableReferencedProjectLoad": false,
+    "disableSolutionSearching": false,
+    "disableSourceOfProjectReferenceRedirect": false,
+    
+    // Decorators
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    
+    // JavaScript
+    "allowJs": false,
+    "checkJs": false,
+    
+    // Editor Support
+    "pretty": true,
+    "preserveWatchOutput": true,
+    "noErrorTruncation": true,
+    
+    // Diagnostics
+    "generateCpuProfile": "tsc-profile.cpuprofile",
+    "suppressImplicitAnyIndexErrors": false
+  },
+  
+  "include": [
+    "nodes/**/*",
+    "credentials/**/*",
+    "core/**/*",
+    "types/**/*",
+    "utils/**/*",
+    "scripts/**/*.ts",
+    "*.ts",
+    "types/global.d.ts",
+    "types/java.d.ts",
+    "types/oracle.d.ts",
+    "types/n8n-extended.d.ts"
+  ],
+  
+  "exclude": [
+    "dist/**/*",
+    "lib/**/*",
+    "node_modules/**/*",
+    "coverage/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/__tests__/**/*",
+    "scripts/verification-test/**/*",
+    "scripts/**/*.js",
+    "gulpfile.js",
+    "jest.config.js",
+    "*.config.js",
+    ".cache/**/*",
+    "*.tsbuildinfo",
+    ".vscode/**/*",
+    ".idea/**/*",
+    "**/.DS_Store"
+  ],
+  
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": true,
+    "files": true,
+    "skipProject": false,
+    "skipIgnore": false,
+    "preferTsExts": true,
+    "compilerOptions": {
+      "module": "CommonJS",
+      "target": "ES2022",
+      "moduleResolution": "node",
+      "allowJs": true,
+      "resolveJsonModule": true
+    },
+    "require": ["tsconfig-paths/register"]
+  },
+  
+  "watchOptions": {
+    "watchFile": "useFsEvents",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriority",
+    "synchronousWatchDirectory": true,
+    "excludeFiles": [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.js.map",
+      "**/*.d.ts.map"
+    ],
+    "excludeDirectories": [
+      "**/node_modules",
+      "**/dist",
+      "**/coverage",
+      "**/lib",
+      "**/.cache",
+      "**/scripts/verification-test"
+    ]
+  }
 }

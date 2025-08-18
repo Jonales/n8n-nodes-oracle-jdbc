@@ -106,7 +106,8 @@ public class DriverTest {
 			fs.writeFileSync(javaFile, testJava);
 
 			execSync(`javac -cp "${classpath}" "${javaFile}"`, { stdio: 'pipe' });
-			const result = execSync(`java -cp "${classpath}:${testDir}" DriverTest`, {
+			const fullClasspath = `${classpath}${path.delimiter}${testDir}`;
+			const result = execSync(`java -cp "${fullClasspath}" DriverTest`, {
 				encoding: 'utf8',
 				stdio: 'pipe',
 			});

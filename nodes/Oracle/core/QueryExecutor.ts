@@ -1,4 +1,4 @@
-import * as java from 'node-java-bridge';
+import * as java from 'java-bridge';
 
 import { ColumnMetadata, JdbcConnection, QueryOptions, QueryResult } from '../types/JdbcTypes';
 

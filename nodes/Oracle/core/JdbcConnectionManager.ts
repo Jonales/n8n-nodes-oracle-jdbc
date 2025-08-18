@@ -1,4 +1,4 @@
-import * as java from 'node-java-bridge';
+import * as java from 'java-bridge';
 import { v4 as uuidv4 } from 'uuid';
 
 import { JdbcConnection, OracleJdbcConfig, QueryOptions, QueryResult } from '../types/JdbcTypes';

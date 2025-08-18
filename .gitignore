@@ -5,6 +5,7 @@
 .eslintcache
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+setup-report.json
 
 package-lock.json
 

@@ -4,6 +4,7 @@ import {
 	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
+	Icon,
 	NodeOperationError,
 } from 'n8n-workflow';
 
@@ -11,7 +12,8 @@ export class OracleJdbc implements ICredentialType {
 	name = 'oracleJdbc';
 	displayName = 'Oracle Database (JDBC)';
 	documentationUrl = 'https://docs.oracle.com/en/database/oracle/oracle-database/';
-	icon = 'file:oracle.svg';
+
+	icon: Icon = 'file:oracle.svg';
 
 	properties: INodeProperties[] = [
 		// === Connection Settings ===
@@ -456,79 +458,11 @@ export class OracleJdbc implements ICredentialType {
 		properties: {},
 	};
 
-	async test(this: any, credential: ICredentialDataDecryptedObject): Promise<boolean> {
-		try {
-			// Import required Java classes
-			const DriverManager = Java.type('java.sql.DriverManager');
-			const OracleDriver = Java.type('oracle.jdbc.OracleDriver');
-
-			// Register Oracle driver
-			DriverManager.registerDriver(new OracleDriver());
-
-			// Build connection URL
-			const connectionUrl = this.buildConnectionUrl(credential);
-
-			// Create test connection with timeout
-			const connection = DriverManager.getConnection(
-				connectionUrl,
-				credential.username as string,
-				credential.password as string,
-			);
-
-			try {
-				// Test connection with simple query
-				const statement = connection.createStatement();
-				statement.setQueryTimeout(10); // 10 second timeout for test
-
-				const resultSet = statement.executeQuery('SELECT 1 as test_connection FROM dual');
-				const hasResult = resultSet.next();
-
-				resultSet.close();
-				statement.close();
-
-				if (!hasResult) {
-					throw new Error('Test query failed to return results');
-				}
-
-				return true;
-			} finally {
-				connection.close();
-			}
-		} catch (error: any) {
-			const errorMessage = error.message || 'Unknown connection error';
-
-			// Provide user-friendly error messages
-			if (errorMessage.includes('ORA-12541')) {
-				throw new NodeOperationError(
-					this.getNode(),
-					'TNS:no listener - Check if Oracle database is running and accessible on the specified host and port',
-				);
-			} else if (errorMessage.includes('ORA-12514')) {
-				throw new NodeOperationError(
-					this.getNode(),
-					'TNS:listener does not currently know of service - Check service name or SID',
-				);
-			} else if (errorMessage.includes('ORA-01017')) {
-				throw new NodeOperationError(
-					this.getNode(),
-					'Invalid username/password - Check your credentials',
-				);
-			} else if (errorMessage.includes('ORA-28040')) {
-				throw new NodeOperationError(
-					this.getNode(),
-					'Client/server authentication protocol mismatch - Check Oracle client and server versions',
-				);
-			} else {
-				throw new NodeOperationError(this.getNode(), `Connection test failed: ${errorMessage}`);
-			}
-		}
-	}
-
+	// Suporte para uso no método test
 	private buildConnectionUrl(credential: ICredentialDataDecryptedObject): string {
 		const connectionType = credential.connectionType as string;
 		const host = credential.host as string;
 		const port = credential.port as number;
-
 		let baseUrl: string;
 
 		switch (connectionType) {
@@ -536,22 +470,18 @@ export class OracleJdbc implements ICredentialType {
 				const serviceName = credential.serviceName as string;
 				baseUrl = `jdbc:oracle:thin:@${host}:${port}/${serviceName}`;
 				break;
-
 			case 'sid':
 				const sid = credential.sid as string;
 				baseUrl = `jdbc:oracle:thin:@${host}:${port}:${sid}`;
 				break;
-
 			case 'tns':
 				const tnsString = credential.tnsString as string;
 				baseUrl = `jdbc:oracle:thin:@${tnsString}`;
 				break;
-
 			case 'ezconnect':
 				const ezConnectString = credential.ezConnectString as string;
 				baseUrl = `jdbc:oracle:thin:@//${ezConnectString}`;
 				break;
-
 			default:
 				throw new Error(`Unsupported connection type: ${connectionType}`);
 		}
