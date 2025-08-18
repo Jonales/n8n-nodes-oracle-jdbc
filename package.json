@@ -1,5 +1,5 @@
 {
-  "name": "oracle-jdbc-advanced-n8n",
+  "name": "n8n-nodes-oracle-jdbc",
   "version": "1.2.0",
   "description": "Oracle Database nodes using pure JDBC driver (zero Oracle Client dependencies). Enterprise-grade Oracle connectivity for n8n with pooling, transactions, stored procedures, RAC/ADG and health-monitoring.",
   "keywords": [
@@ -24,7 +24,7 @@
     "cloud-compatible"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/jonales/oracle-jdbc-advanced-n8n",
+  "homepage": "https://github.com/jonales/n8n-nodes-oracle-jdbc",
   "author": {
     "name": "Jônatas Meireles Sousa Vieira",
     "email": "jonatas.mei@outlook.com",
@@ -33,16 +33,16 @@
   "contributors": [
     {
       "name": "Community Contributors",
-      "url": "https://github.com/jonales/oracle-jdbc-advanced-n8n/graphs/contributors"
+      "url": "https://github.com/jonales/n8n-nodes-oracle-jdbc/graphs/contributors"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jonales/oracle-jdbc-advanced-n8n.git",
+    "url": "git+https://github.com/jonales/n8n-nodes-oracle-jdbc.git",
     "directory": "."
   },
   "bugs": {
-    "url": "https://github.com/jonales/oracle-jdbc-advanced-n8n/issues",
+    "url": "https://github.com/jonales/n8n-nodes-oracle-jdbc/issues",
     "email": "jonatas.mei@outlook.com"
   },
   "type": "commonjs",
@@ -408,13 +408,13 @@
   
   "badges": [
     {
-      "url": "https://img.shields.io/npm/v/oracle-jdbc-advanced-n8n",
-      "href": "https://www.npmjs.com/package/oracle-jdbc-advanced-n8n",
+      "url": "https://img.shields.io/npm/v/n8n-nodes-oracle-jdbc",
+      "href": "https://www.npmjs.com/package/n8n-nodes-oracle-jdbc",
       "description": "npm version"
     },
     {
-      "url": "https://img.shields.io/github/license/jonales/oracle-jdbc-advanced-n8n",
-      "href": "https://github.com/jonales/oracle-jdbc-advanced-n8n/blob/main/LICENSE.md",
+      "url": "https://img.shields.io/github/license/jonales/n8n-nodes-oracle-jdbc",
+      "href": "https://github.com/jonales/n8n-nodes-oracle-jdbc/blob/main/LICENSE.md",
       "description": "license"
     }
   ]
