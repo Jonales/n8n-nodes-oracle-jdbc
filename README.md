@@ -1,9 +1,9 @@
-# oracle-jdbc-advanced-n8n
+# n8n-nodes-oracle-jdbc
 
 ![Oracle JDBC Advanced N8N](image/README/oracle-n8n.png)
 
-[![npm version](https://img.shields.io/npm/v/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)  
-[![npm downloads](https://img.shields.io/npm/dt/oracle-jdbc-advanced-n8n.svg)](https://www.npmjs.com/package/oracle-jdbc-advanced-n8n)
+[![npm version](https://img.shields.io/npm/v/n8n-nodes-oracle-jdbc.svg)](https://www.npmjs.com/package/n8n-nodes-oracle-jdbc)  
+[![npm downloads](https://img.shields.io/npm/dt/n8n-nodes-oracle-jdbc.svg)](https://www.npmjs.com/package/n8n-nodes-oracle-jdbc)
 
 
 
@@ -41,7 +41,7 @@ Enterprise-grade solution for integrating n8n with Oracle databases using offici
 ## ⚙️ Installation
 
 ```bash
-npm install oracle-jdbc-advanced-n8n
+npm install n8n-nodes-oracle-jdbc
 ```
 
 > Requires Java 11+ and Oracle JDBC drivers (ojdbc11.jar, ucp.jar) inside `/lib`.  
@@ -144,7 +144,7 @@ const poolConfig = PoolConfigurationPresets.getHighVolumeOLTP();
 ## 🧪 Project Structure
 
 ```text
-oracle-jdbc-advanced-n8n/
+n8n-nodes-oracle-jdbc/
 ├── core/
 │   ├── AdvancedPoolConfig.ts
 │   ├── BatchOperations.ts
@@ -309,8 +309,8 @@ SOFTWARE.
 
 - [Oracle Database Documentation](https://docs.oracle.com/en/database/oracle/oracle-database/)  
 - [n8n Community Nodes](https://docs.n8n.io/integrations/community-nodes/)  
-- [Report Issues](https://github.com/jonales/oracle-jdbc-advanced-n8n/issues)  
-- [Discussions](https://github.com/jonales/oracle-jdbc-advanced-n8n/discussions)  
+- [Report Issues](https://github.com/jonales/n8n-nodes-oracle-jdbc/issues)  
+- [Discussions](https://github.com/jonales/n8n-nodes-oracle-jdbc/discussions)  
 
 ---
 
@@ -318,8 +318,8 @@ SOFTWARE.
 
 **⭐ Star if you like it!**  
 
-[![GitHub stars](https://img.shields.io/github/stars/jonales/oracle-jdbc-advanced-n8n.svg?style=social&label=Star)](https://github.com/jonales/oracle-jdbc-advanced-n8n)  
-[![GitHub forks](https://img.shields.io/github/forks/jonales/oracle-jdbc-advanced-n8n.svg?style=social&label=Fork)](https://github.com/jonales/oracle-jdbc-advanced-n8n/fork)  
+[![GitHub stars](https://img.shields.io/github/stars/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Star)](https://github.com/jonales/n8n-nodes-oracle-jdbc)  
+[![GitHub forks](https://img.shields.io/github/forks/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Fork)](https://github.com/jonales/n8n-nodes-oracle-jdbc/fork)  
 
 Made with ❤️ 100% original, no third-party forks!  
 
@@ -362,7 +362,7 @@ Solução empresarial para integração entre n8n e bancos Oracle usando tecnolo
 
 ```
 
-npm install oracle-jdbc-advanced-n8n
+npm install n8n-nodes-oracle-jdbc
 
 ```
 
@@ -468,7 +468,7 @@ const poolConfig = PoolConfigurationPresets.getHighVolumeOLTP();
 
 ```
 
-oracle-jdbc-advanced-n8n/
+n8n-nodes-oracle-jdbc/
 ├── core/
 │   ├── AdvancedPoolConfig.ts
 │   ├── BatchOperations.ts
@@ -636,8 +636,8 @@ SOFTWARE.
 
 - [Oracle Database Documentation](https://docs.oracle.com/en/database/oracle/oracle-database/)
 - [n8n Community Nodes](https://docs.n8n.io/integrations/community-nodes/)
-- [Report Issues](https://github.com/jonales/oracle-jdbc-advanced-n8n/issues)
-- [Discussions](https://github.com/jonales/oracle-jdbc-advanced-n8n/discussions)
+- [Report Issues](https://github.com/jonales/n8n-nodes-oracle-jdbc/issues)
+- [Discussions](https://github.com/jonales/n8n-nodes-oracle-jdbc/discussions)
 
 ---
 
@@ -645,8 +645,8 @@ SOFTWARE.
 
 **⭐ Dê uma estrela se gostou!**
 
-[![GitHub stars](https://img.shields.io/github/stars/jonales/oracle-jdbc-advanced-n8n.svg?style=social&label=Star)](https://github.com/jonales/oracle-jdbc-advanced-n8n)
-[![GitHub forks](https://img.shields.io/github/forks/jonales/oracle-jdbc-advanced-n8n.svg?style=social&label=Fork)](https://github.com/jonales/oracle-jdbc-advanced-n8n/fork)
+[![GitHub stars](https://img.shields.io/github/stars/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Star)](https://github.com/jonales/n8n-nodes-oracle-jdbc)
+[![GitHub forks](https://img.shields.io/github/forks/jonales/n8n-nodes-oracle-jdbc.svg?style=social&label=Fork)](https://github.com/jonales/n8n-nodes-oracle-jdbc/fork)
 
 Made with ❤️ 100% autoral, sem forks de terceiros!
 
