@@ -563,7 +563,7 @@ module.exports = [
 // 📊 EXPORT CACHE CONFIGURATION FOR CLI
 // ==========================================
 module.exports.meta = {
-  name: 'oracle-jdbc-advanced-n8n-eslint-config',
+  name: 'n8n-nodes-oracle-jdbc-eslint-config',
   version: '1.0.0',
   cache: CACHE_CONFIG
 };
