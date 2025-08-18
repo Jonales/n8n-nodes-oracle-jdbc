@@ -1,8 +1,9 @@
-declare module 'java' {
-	export const classpath: string[];
-	// Declara como uma propriedade de objeto exportado
-	const _import: (className: string) => any;
-	export { _import as import };
-	export function newInstanceSync(className: string, ...args: any[]): any;
-	export function callStaticMethodSync(className: string, methodName: string, ...args: any[]): any;
+declare module 'java-bridge' {
+  export function addClasspath(path: string): void;
+  export function addClasspaths(paths: string[]): void;
+  export function classpath: string[];
+  export function import<T = any>(className: string): T;
+  export function newInstanceSync<T = any>(className: string, ...args: any[]): T;
+  export function callStaticMethodSync<T = any>(className: string, methodName: string, ...args: any[]): T;
+  export function ensureJvm(): Promise<void>;
 }
