@@ -4,9 +4,8 @@
     // 🎯 LANGUAGE AND ENVIRONMENT - ORACLE JDBC OPTIMIZED
     // ==========================================
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "ES2022.Promise", "ES2022.String"],
+    "lib": ["ES2022", "DOM", "ES2022.String"],
     "module": "CommonJS",
-    "moduleResolution": "bundler",
     
     // ==========================================
     // 📦 MODULES - N8N STRUCTURE OPTIMIZED
@@ -56,7 +55,6 @@
     "downlevelIteration": true,
     "importHelpers": true,
     "newLine": "lf",
-    "preserveValueImports": true,
     "stripInternal": true,
     
     // ==========================================
