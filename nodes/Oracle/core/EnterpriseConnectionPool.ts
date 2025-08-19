@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,11 +5,10 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
 import { v4 as uuidv4 } from 'uuid';
-import { JdbcConnection, OracleJdbcConfig, QueryOptions } from '../types/JdbcTypes';
 
+import { JdbcConnection, OracleJdbcConfig, QueryOptions } from '../types/JdbcTypes';
 import type { ConnectionLabel } from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
@@ -46,7 +44,7 @@ export interface PoolStatistics {
 	connectionRequestsCount: number;
 }
 
-export interface UcpConnectionLabel  {
+export interface UcpConnectionLabel {
 	[key: string]: string;
 }
 
@@ -84,12 +82,11 @@ export class EnterpriseConnectionPool {
 	// Connection tracking
 	private activeConnections = new Map<string, { borrowed: Date; labels?: ConnectionLabel }>();
 	//private statistics: PoolStatistics; //erro aqui Property 'statistics' has no initializer and is not definitely assigned in the constructor.ts(2564) (property) EnterpriseConnectionPool.statistics: PoolStatistics
-  	private statistics: PoolStatistics = EnterpriseConnectionPool.createInitialStatistics();
-
+	private statistics: PoolStatistics = EnterpriseConnectionPool.createInitialStatistics();
 
 	// RAC support
 	private racFailoverEvents: RacFailoverEvent[] = [];
-	private lastFailoverCheck = new Date(); 
+	private lastFailoverCheck = new Date();
 
 	constructor(config: OracleJdbcConfig, poolConfig: AdvancedPoolConfiguration = {}) {
 		this.poolId = uuidv4();
@@ -153,14 +150,12 @@ export class EnterpriseConnectionPool {
 		return stats;
 	}
 
-
 	private initializeStatistics(): void {
 		this.statistics.poolId = this.poolId;
 		// Se tiver um nome configurado depois, atualize:
 		// this.statistics.poolName = `EnterprisePool_${this.poolId}`;
 		this.statistics.lastHealthCheck = new Date();
 	}
-
 
 	async initialize(): Promise<void> {
 		if (this.isInitialized) {
@@ -205,7 +200,6 @@ export class EnterpriseConnectionPool {
 			const poolName = `EnterprisePool_${this.poolId}`;
 			await this.dataSource.setConnectionPoolName(poolName);
 			this.statistics.poolName = poolName;
-
 
 			// Register pool with manager
 			await this.poolManager.createConnectionPool(this.dataSource);
@@ -313,7 +307,7 @@ export class EnterpriseConnectionPool {
 				// Check if error is retryable
 				if (attempt < maxRetries && ErrorHandler.isRetryableError(error)) {
 					const message = error instanceof Error ? error.message : String(error);
-					
+
 					console.warn(`Connection attempt ${attempt} failed, retrying in ${retryDelayMs}ms...`, {
 						error: message,
 						poolId: this.poolId,

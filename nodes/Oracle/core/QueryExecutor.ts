@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
 
 import { ColumnMetadata, JdbcConnection, QueryOptions, QueryResult } from '../types/JdbcTypes';
@@ -19,8 +17,7 @@ export interface ExecutionOptions extends QueryOptions {
 	maxResultSetSize?: number;
 	streamResults?: boolean;
 	chunkSize?: number;
-	timeout?: number; 
-
+	timeout?: number;
 }
 
 export interface QueryPlan {
@@ -621,8 +618,8 @@ export class QueryExecutor {
 			await statement.setFetchSize(options.fetchSize);
 		}
 
-		if (options.timeout) { 
-			await statement.setQueryTimeout(options.timeout); 
+		if (options.timeout) {
+			await statement.setQueryTimeout(options.timeout);
 		}
 
 		if (options.maxRows) {
@@ -664,7 +661,6 @@ export class QueryExecutor {
 
 		return statement;
 	}
-
 
 	private groupQueriesBySQL(
 		queries: Array<{ sql: string; parameters?: any[] }>,
@@ -763,5 +759,4 @@ export class QueryExecutor {
 	async close(): Promise<void> {
 		await this.clearStatementCache();
 	}
-
 }

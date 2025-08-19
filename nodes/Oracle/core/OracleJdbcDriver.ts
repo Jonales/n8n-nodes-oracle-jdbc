@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,130 +5,126 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
+
 import {
-	OracleJdbcConfig,
 	ConnectionTestResult,
-	DriverInitializationOptions
+	DriverInitializationOptions,
+	OracleJdbcConfig,
 } from '../types/JdbcTypes';
+
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
 
 export class OracleJdbcDriver {
-  private static initialized = false;
-  
-  static async initialize(options: DriverInitializationOptions = {}): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
+	private static initialized = false;
 
-    try {
-      // Ensure JVM is running
-      await java.ensureJvm();
-      
-      // Add Oracle JDBC JARs to classpath
-      await this.addJarsToClasspath();
-      
-      // Import and register Oracle JDBC driver
-      await this.registerOracleDriver();
-      
-      this.initialized = true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+	static async initialize(options: DriverInitializationOptions = {}): Promise<void> {
+		if (this.initialized) {
+			return;
+		}
 
-      throw new Error(`Failed to initialize Oracle JDBC driver: ${message}`);
-    }
-  }
+		try {
+			// Ensure JVM is running
+			await java.ensureJvm();
 
-  private static async addJarsToClasspath(): Promise<void> {
-    const jars = [
-      './lib/ojdbc11.jar',
-      './lib/ucp.jar', 
-      './lib/orai18n.jar',
-      './lib/ons.jar'
-    ];
+			// Add Oracle JDBC JARs to classpath
+			await this.addJarsToClasspath();
 
-    try {
-      java.addClasspaths(jars);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+			// Import and register Oracle JDBC driver
+			await this.registerOracleDriver();
 
-      console.warn('Some JAR files could not be added to classpath:', message);
-    }
-  }
+			this.initialized = true;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
 
-  private static async registerOracleDriver(): Promise<void> {
-    try {
-      const OracleDriver = java.javaImport('oracle.jdbc.OracleDriver');
-      const DriverManager = java.javaImport('java.sql.DriverManager');
-      
-      const driverInstance = java.newInstanceSync('oracle.jdbc.OracleDriver');
-      await DriverManager.registerDriver(driverInstance);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+			throw new Error(`Failed to initialize Oracle JDBC driver: ${message}`);
+		}
+	}
 
-      throw new Error(`Failed to register Oracle JDBC driver: ${message}`);
-    }
-  }
+	private static async addJarsToClasspath(): Promise<void> {
+		const jars = ['./lib/ojdbc11.jar', './lib/ucp.jar', './lib/orai18n.jar', './lib/ons.jar'];
 
-  // Método privado mantido para uso interno
-  public static buildConnectionString(config: OracleJdbcConfig): string {
-    const { host, port = 1521, serviceName, sid } = config;
-    
-    if (serviceName) {
-      return `jdbc:oracle:thin:@${host}:${port}/${serviceName}`;
-    } else if (sid) {
-      return `jdbc:oracle:thin:@${host}:${port}:${sid}`;
-    } else {
-      throw new Error('Either serviceName or sid must be provided in Oracle JDBC config');
-    }
-  }
+		try {
+			java.addClasspaths(jars);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
 
-  // Método público para ser usado por outras classes
-  public static getConnectionString(config: OracleJdbcConfig): string {
-    return this.buildConnectionString(config);
-  }
+			console.warn('Some JAR files could not be added to classpath:', message);
+		}
+	}
 
-  // Getter para verificar se o driver foi inicializado
-  public static get isInitialized(): boolean {
-    return this.initialized;
-  }
-  
-  static async testConnection(config: OracleJdbcConfig): Promise<ConnectionTestResult> {
-    await this.initialize();
+	private static async registerOracleDriver(): Promise<void> {
+		try {
+			const OracleDriver = java.javaImport('oracle.jdbc.OracleDriver');
+			const DriverManager = java.javaImport('java.sql.DriverManager');
 
-    const startTime = Date.now();
-    try {
-      const connectionUrl = this.buildConnectionString(config);
+			const driverInstance = java.newInstanceSync('oracle.jdbc.OracleDriver');
+			await DriverManager.registerDriver(driverInstance);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
 
-      const DriverManager = java.javaImport('java.sql.DriverManager');
+			throw new Error(`Failed to register Oracle JDBC driver: ${message}`);
+		}
+	}
 
-      const connection = await DriverManager.getConnection(
-        connectionUrl,
-        config.username,
-        config.password
-      );
+	// Método privado mantido para uso interno
+	public static buildConnectionString(config: OracleJdbcConfig): string {
+		const { host, port = 1521, serviceName, sid } = config;
 
-      const statement = await connection.createStatement();
-      const resultSet = await statement.executeQuery('SELECT 1 FROM dual');
-      const hasResult = await resultSet.next();
+		if (serviceName) {
+			return `jdbc:oracle:thin:@${host}:${port}/${serviceName}`;
+		} else if (sid) {
+			return `jdbc:oracle:thin:@${host}:${port}:${sid}`;
+		} else {
+			throw new Error('Either serviceName or sid must be provided in Oracle JDBC config');
+		}
+	}
 
-      await resultSet.close();
-      await statement.close();
-      await connection.close();
+	// Método público para ser usado por outras classes
+	public static getConnectionString(config: OracleJdbcConfig): string {
+		return this.buildConnectionString(config);
+	}
 
-      return {
-        isSuccessful: hasResult,
-        responseTime: Date.now() - startTime
-      };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+	// Getter para verificar se o driver foi inicializado
+	public static get isInitialized(): boolean {
+		return this.initialized;
+	}
 
-      return {
-        isSuccessful: false,
-        responseTime: Date.now() - startTime,
-        error: message
-      };
-    }
-  }
+	static async testConnection(config: OracleJdbcConfig): Promise<ConnectionTestResult> {
+		await this.initialize();
+
+		const startTime = Date.now();
+		try {
+			const connectionUrl = this.buildConnectionString(config);
+
+			const DriverManager = java.javaImport('java.sql.DriverManager');
+
+			const connection = await DriverManager.getConnection(
+				connectionUrl,
+				config.username,
+				config.password,
+			);
+
+			const statement = await connection.createStatement();
+			const resultSet = await statement.executeQuery('SELECT 1 FROM dual');
+			const hasResult = await resultSet.next();
+
+			await resultSet.close();
+			await statement.close();
+			await connection.close();
+
+			return {
+				isSuccessful: hasResult,
+				responseTime: Date.now() - startTime,
+			};
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			return {
+				isSuccessful: false,
+				responseTime: Date.now() - startTime,
+				error: message,
+			};
+		}
+	}
 }

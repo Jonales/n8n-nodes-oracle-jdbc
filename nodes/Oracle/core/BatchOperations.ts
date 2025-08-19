@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
 
 import { JdbcConnection } from '../types/JdbcTypes';
@@ -449,7 +447,7 @@ export class BatchOperations {
 							totalBatches,
 						);
 					}
-				} catch (error:unknown) {
+				} catch (error: unknown) {
 					const message = error instanceof Error ? error.message : String(error);
 
 					failedBatches++;
@@ -616,7 +614,7 @@ export class BatchOperations {
 					if (progressCallback) {
 						progressCallback(totalProcessed, data.length, currentBatch + 1, totalBatches);
 					}
-				} catch (error:unknown) {
+				} catch (error: unknown) {
 					const message = error instanceof Error ? error.message : String(error);
 
 					failedBatches++;

@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -101,7 +99,6 @@ export class ConnectionPool {
 		this.statistics.poolId = this.poolId;
 	}
 
-
 	// Se você souber o nome do pool depois, chame isso:
 	public setPoolName(name: string) {
 		this.statistics.poolName = name;
@@ -129,7 +126,7 @@ export class ConnectionPool {
 			lastHealthCheck: new Date(),
 		};
 	}
-	
+
 	/*
 	constructor(config: OracleJdbcConfig, poolConfig: PoolConfiguration = {}) {
 		this.poolId = uuidv4();
@@ -405,7 +402,6 @@ export class ConnectionPool {
 
 										(property) ConnectionPool.monitoringTimer?: NodeJS.Timer
 				*/
-
 
 				this.monitoringTimer = undefined;
 			}

@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,14 +5,12 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
-
 import { IDataObject, INodeExecutionData } from 'n8n-workflow';
+import { string } from 'sql-formatter/dist/cjs/lexer/regexFactory';
 
 import { ParameterDefinition, ParameterMode, ParameterType } from '../types/JdbcTypes';
 import { OracleTypeUtils } from '../types/OracleTypes';
-import { string } from 'sql-formatter/dist/cjs/lexer/regexFactory';
 
 export interface ParameterBindingOptions {
 	validateTypes?: boolean;
@@ -95,8 +92,7 @@ export class ParameterBinder {
 				const processed = this.processParameter(param, inputData, opts, i);
 				processedParams.push(processed);
 			} catch (error: unknown) {
-				const message =
-					error instanceof Error ? error.message : String(error);
+				const message = error instanceof Error ? error.message : String(error);
 
 				throw new Error(`Parameter ${i + 1} (${param.name || 'unnamed'}): ${message}`);
 			}
@@ -149,17 +145,17 @@ export class ParameterBinder {
 				try {
 					value = this.resolveExpressions(value, inputData);
 				} catch (error) {
-						const errorMessage = error instanceof Error ? error.message : String(error);
+					const errorMessage = error instanceof Error ? error.message : String(error);
 
-						errors.push({
-							parameterIndex: i,
-							parameterName: param.name,
-							error: `Expression resolution failed: ${errorMessage}`,
-							expectedType: param.type || 'any',
-							actualType: typeof value,
-							value,
-						});
-					}
+					errors.push({
+						parameterIndex: i,
+						parameterName: param.name,
+						error: `Expression resolution failed: ${errorMessage}`,
+						expectedType: param.type || 'any',
+						actualType: typeof value,
+						value,
+					});
+				}
 			}
 
 			// Type validation
@@ -169,7 +165,7 @@ export class ParameterBinder {
 			if (!this.isTypeCompatible(actualType, expectedType)) {
 				if (options.convertTypes) {
 					try {
-						value = this.convertType(value, expectedType, options); 
+						value = this.convertType(value, expectedType, options);
 						warnings.push({
 							parameterIndex: i,
 							parameterName: param.name,
@@ -177,7 +173,8 @@ export class ParameterBinder {
 							suggestion: 'Consider providing the correct type directly',
 						});
 					} catch (conversionError) {
-						const conversionMessage = conversionError instanceof Error ? conversionError.message : String(conversionError);
+						const conversionMessage =
+							conversionError instanceof Error ? conversionError.message : String(conversionError);
 
 						errors.push({
 							parameterIndex: i,
@@ -188,7 +185,6 @@ export class ParameterBinder {
 							value,
 						});
 					}
-
 				} else {
 					errors.push({
 						parameterIndex: i,

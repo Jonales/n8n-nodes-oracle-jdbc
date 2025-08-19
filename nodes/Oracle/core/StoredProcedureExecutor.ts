@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
 
 import { JdbcConnection } from '../types/JdbcTypes';
@@ -519,7 +517,7 @@ export class StoredProcedureExecutor {
 						maxRows: options.maxCursorRows,
 					});
 					cursors[param.name] = cursorData;
-				}  catch (error) {
+				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error);
 					console.warn(`Failed to extract cursor ${param.name}:`, message);
 					cursors[param.name] = [];
@@ -950,7 +948,7 @@ export class StoredProcedureExecutor {
 			};
 		} else if (parts.length === 3) {
 			return {
-				owner: parts[0],        // 🟢 Corrigido
+				owner: parts[0], // 🟢 Corrigido
 				packageName: parts[1],
 				procedureName: parts[2],
 			};
@@ -958,5 +956,4 @@ export class StoredProcedureExecutor {
 			throw new Error(`Invalid procedure name format: ${fullName}`);
 		}
 	}
-
 }

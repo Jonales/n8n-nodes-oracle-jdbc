@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,8 +5,8 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import * as java from 'java-bridge';
+
 import { JdbcConnection } from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
@@ -522,7 +521,7 @@ export class TransactionManager {
 
 		try {
 			await this.connection.connection.rollback();
-		} catch (error:unknown) {
+		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : String(error);
 
 			console.warn('Failed to rollback during force cleanup:', message);
@@ -545,7 +544,7 @@ export class TransactionManager {
 			if (this.originalReadOnly !== undefined) {
 				await this.connection.connection.setReadOnly(this.originalReadOnly);
 			}
-		} catch (error:unknown) {
+		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : String(error);
 
 			console.warn('Failed to restore connection state:', message);

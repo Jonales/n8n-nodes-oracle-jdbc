@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import { NodeOperationError } from 'n8n-workflow';
 
 import { OracleErrorCodes } from '../types/OracleTypes';
@@ -657,12 +655,12 @@ export class ErrorHandler {
 		const now = Date.now();
 		const recentErrors = this.errorHistory.filter(error => {
 			const errorTime = error.context.timestamp?.getTime() || 0;
-			return (now - errorTime) <= timeWindowMs;
+			return now - errorTime <= timeWindowMs;
 		});
 
-		const matchingErrors = recentErrors.filter(error =>
-			error.technicalMessage.includes(errorPattern) ||
-			error.userMessage.includes(errorPattern)
+		const matchingErrors = recentErrors.filter(
+			error =>
+				error.technicalMessage.includes(errorPattern) || error.userMessage.includes(errorPattern),
 		);
 
 		return matchingErrors.length >= 3; // 3 ou mais ocorrências na janela de tempo
@@ -676,8 +674,10 @@ export class ErrorHandler {
 		const stats = this.getErrorStatistics();
 
 		// Sugestões baseadas em categorias frequentes
-		const topCategory = Object.keys(stats.errorsByCategory)
-			.reduce((a, b) => stats.errorsByCategory[a] > stats.errorsByCategory[b] ? a : b, '');
+		const topCategory = Object.keys(stats.errorsByCategory).reduce(
+			(a, b) => (stats.errorsByCategory[a] > stats.errorsByCategory[b] ? a : b),
+			'',
+		);
 
 		switch (topCategory) {
 			case ErrorCategory.CONNECTION:

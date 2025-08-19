@@ -5,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import {
 	IDataObject,
 	IExecuteFunctions,
@@ -495,14 +494,13 @@ END;`,
 		return [returnData];
 	}
 
-
 	// chame sempre com o ctx vindo do execute()
 	private async executeQuery(
 		ctx: IExecuteFunctions,
 		config: OracleJdbcConfig,
 		items: INodeExecutionData[],
 		returnData: INodeExecutionData[],
-		): Promise<void> {
+	): Promise<void> {
 		const sqlQuery = ctx.getNodeParameter('sqlQuery', 0) as string;
 		const advancedOptions = ctx.getNodeParameter('advancedOptions', 0, {}) as IDataObject;
 
@@ -514,7 +512,6 @@ END;`,
 		// use ctx.getNode() para erros
 		// throw new NodeOperationError(ctx.getNode(), 'mensagem');
 	}
-
 
 	private async executeTransaction(
 		config: OracleJdbcConfig,

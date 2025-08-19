@@ -1,4 +1,3 @@
-
 /**
  * Oracle para n8n-nodes-oracle-jdbc
  * Suporte para modo JDBC
@@ -6,7 +5,6 @@
  * @author Jônatas Meireles Sousa Vieira
  * @version 0.0.1-rc.1
  */
-
 import { JdbcConnection, OracleJdbcConfig } from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
@@ -79,7 +77,7 @@ export interface PoolOperationOptions {
 export class PoolManager {
 	private static instance: PoolManager;
 	private pools = new Map<string, ManagedPool>();
-	private healthMonitorInterval?: NodeJS.Timeout;		
+	private healthMonitorInterval?: NodeJS.Timeout;
 	private readonly HEALTH_CHECK_INTERVAL = 60000; // 1 minute
 
 	private constructor() {
@@ -359,11 +357,11 @@ export class PoolManager {
 			if (retryAttempts > 1 && !failFast) {
 				return enterprisePool.getConnectionWithRetry(retryAttempts, 1000);
 			} else {
-				return enterprisePool.getConnection(undefined, { timeout }); 
+				return enterprisePool.getConnection(undefined, { timeout });
 			}
 		} else {
 			const basicPool = managedPool.pool as ConnectionPool;
-			return basicPool.getConnection({ timeout }); 
+			return basicPool.getConnection({ timeout });
 		}
 	}
 
@@ -443,25 +441,25 @@ export class PoolManager {
 					lastCheck: managedPool.lastHealthCheck,
 					connectionStats,
 				});
-				} catch (error: unknown) {
-					const message = error instanceof Error ? error.message : String(error);
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : String(error);
 
-					healthSummaries.push({
-						poolName: managedPool.name,
-						poolId: managedPool.poolId,
-						type: managedPool.type,
-						isHealthy: false,
-						issues: [`Health check failed: ${message}`],
-						warnings: [],
-						lastCheck: new Date(),
-						connectionStats: {
-							total: 0,
-							available: 0,
-							borrowed: 0,
-							peak: 0,
-						},
-					});
-				}
+				healthSummaries.push({
+					poolName: managedPool.name,
+					poolId: managedPool.poolId,
+					type: managedPool.type,
+					isHealthy: false,
+					issues: [`Health check failed: ${message}`],
+					warnings: [],
+					lastCheck: new Date(),
+					connectionStats: {
+						total: 0,
+						available: 0,
+						borrowed: 0,
+						peak: 0,
+					},
+				});
+			}
 		}
 
 		return healthSummaries;
