@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-oracle-jdbc",
-	"version": "1.0.0",
+	"version": "0.0.1-rc.1",
 	"description": "Oracle Database nodes using pure JDBC driver (zero Oracle Client dependencies). Enterprise-grade Oracle connectivity for n8n with pooling, transactions, stored procedures, RAC/ADG and health-monitoring.",
 	"keywords": [
 		"n8n-community-node-package",
@@ -213,7 +213,7 @@
 		"husky": "^9.1.7",
 		"jest": "^29.7.0",
 		"lint-staged": "^15.2.10",
-		"n8n-workflow": "^1.82.0",
+		"n8n-workflow": "^1.105.0",
 		"prettier": "^3.3.3",
 		"rimraf": "^6.0.1",
 		"semantic-release": "^22.0.12",
