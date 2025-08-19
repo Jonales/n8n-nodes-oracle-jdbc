@@ -1,3 +1,12 @@
+
+/**
+ * Oracle para n8n-nodes-oracle-jdbc
+ * Suporte para modo JDBC
+ *
+ * @author Jônatas Meireles Sousa Vieira
+ * @version 0.0.1-rc.1
+ */
+
 import { ColumnMetadata, QueryResult } from '../types/JdbcTypes';
 import { OracleDataTypes, OracleTypeMapping, OracleTypeUtils } from '../types/OracleTypes';
 
@@ -148,33 +157,37 @@ export class ResultMapper {
 				default:
 					return this.mapGenericType(value, normalizedType, opts);
 			}
-		} catch (error) {
-			console.warn(`Error mapping Oracle type ${columnType}:`, error);
-			return this.handleMappingError(value, columnType, error, opts);
-		}
-	}
+		} catch (error : unknown) {
+			const message = error instanceof Error ? error.message : String(error);
 
-	static transformResultSet(
+			console.warn(`Error mapping Oracle type ${columnType}:`, message);
+		return this.handleMappingError(value, columnType, 
+			error instanceof Error ? error : new Error(message), 
+			opts
+		);
+	}
+}
+
+	private static transformResultSet(
 		rows: any[],
-		transformations: { [column: string]: (value: any) => any },
+		transformations: Record<string, (value: any) => any>,
 		options: ResultMappingOptions = {},
 	): any[] {
 		const opts = { ...this.DEFAULT_OPTIONS, ...options };
 
-		return rows.map((row, index) => {
+		return rows.map(row => {
 			const transformedRow: any = {};
-
 			for (const [key, value] of Object.entries(row)) {
 				const normalizedKey = this.normalizeColumnName(key, opts);
-				const transformedValue = transformations[key] ? transformations[key](value) : value;
+				const transform = transformations[key] ?? transformations[normalizedKey];
+				const transformedValue = transform ? transform(value) : value;
 				transformedRow[normalizedKey] = transformedValue;
 			}
-
 			return transformedRow;
 		});
 	}
 
-	static transformWithPipeline(
+	private static transformWithPipeline(
 		queryResult: QueryResult,
 		pipeline: ResultTransformationPipeline,
 		options: ResultMappingOptions = {},
@@ -203,11 +216,13 @@ export class ResultMapper {
 						columnMeta?.type || 'VARCHAR2',
 						opts,
 					);
-				} catch (error) {
+				} catch (error : unknown) {
+					const message = error instanceof Error ? error.message : String(error);
+
 					errors.push({
 						row: -1, // Will be set later
 						column: columnName,
-						error: error.message,
+						error: message,
 						originalValue: value,
 						fallbackValue: value,
 					});
@@ -243,11 +258,13 @@ export class ResultMapper {
 								if (!transformedColumns.includes(normalizedColumnName)) {
 									transformedColumns.push(normalizedColumnName);
 								}
-							} catch (error) {
+							} catch (error : unknown) {
+								const message = error instanceof Error ? error.message : String(error);
+
 								errors.push({
 									row: rowIndex,
 									column: columnName,
-									error: error.message,
+									error: message,
 									originalValue,
 									fallbackValue: originalValue,
 								});
@@ -262,11 +279,13 @@ export class ResultMapper {
 				}
 
 				return row;
-			} catch (error) {
+			} catch (error : unknown) {
+				const message = error instanceof Error ? error.message : String(error);
+
 				errors.push({
 					row: rowIndex,
 					column: '*',
-					error: `Row transformation failed: ${error.message}`,
+					error: `Row transformation failed: ${message}`,
 					originalValue: row,
 					fallbackValue: row,
 				});
@@ -285,11 +304,13 @@ export class ResultMapper {
 		if (pipeline.postProcessor) {
 			try {
 				mappedData = pipeline.postProcessor(mappedData) || mappedData;
-			} catch (error) {
+			} catch (error : unknown) {
+				const message = error instanceof Error ? error.message : String(error);
+
 				errors.push({
 					row: -1,
 					column: '*',
-					error: `Post processing failed: ${error.message}`,
+					error: `Post processing failed: ${message}`,
 					originalValue: mappedData,
 					fallbackValue: mappedData,
 				});
@@ -408,8 +429,10 @@ export class ResultMapper {
 			}
 
 			return buffer.toString('base64');
-		} catch (error) {
-			throw new Error(`Failed to convert BLOB to base64: ${error.message}`);
+		} catch (error : unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			throw new Error(`Failed to convert BLOB to base64: ${message}`);
 		}
 	}
 
@@ -575,8 +598,10 @@ export class ResultMapper {
 			const parser = new DOMParser();
 			const doc = parser.parseFromString(xml, 'application/xml');
 			return this.xmlNodeToJson(doc.documentElement);
-		} catch (error) {
-			throw new Error(`Failed to parse XML: ${error.message}`);
+		} catch (error : unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			throw new Error(`Failed to parse XML: ${message}`);
 		}
 	}
 
