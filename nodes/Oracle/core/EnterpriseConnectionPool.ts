@@ -22,6 +22,8 @@ export interface PoolStatistics {
 	connectionBorrowTime: number;
 	cumulativeConnectionBorrowTime: number;
 	cumulativeConnectionReturnTime: number;
+	averageConnectionWaitTime: number;
+	maxConnectionWaitTime: number;
 
 	// Advanced metrics
 	averageConnectionBorrowTime: number;
@@ -31,6 +33,7 @@ export interface PoolStatistics {
 	racFailovers: number;
 	poolHealth: 'HEALTHY' | 'WARNING' | 'CRITICAL';
 	lastHealthCheck: Date;
+	connectionRequestsCount: number;
 }
 
 export interface ConnectionLabel {
@@ -66,11 +69,13 @@ export class EnterpriseConnectionPool {
 	private isInitialized = false;
 	private isShuttingDown = false;
 	private poolManager: any;
-	private statsMonitor?: NodeJS.Timer;
+	private statsMonitor?: NodeJS.Timeout;
 
 	// Connection tracking
 	private activeConnections = new Map<string, { borrowed: Date; labels?: ConnectionLabel }>();
-	private statistics: PoolStatistics; //erro aqui Property 'statistics' has no initializer and is not definitely assigned in the constructor.ts(2564) (property) EnterpriseConnectionPool.statistics: PoolStatistics
+	//private statistics: PoolStatistics; //erro aqui Property 'statistics' has no initializer and is not definitely assigned in the constructor.ts(2564) (property) EnterpriseConnectionPool.statistics: PoolStatistics
+  	private statistics: PoolStatistics = EnterpriseConnectionPool.createInitialStatistics();
+
 
 	// RAC support
 	private racFailoverEvents: RacFailoverEvent[] = [];
@@ -99,6 +104,53 @@ export class EnterpriseConnectionPool {
 
 		this.initializeStatistics();
 	}
+
+	private static createInitialStatistics(): PoolStatistics {
+		const stats = {
+			poolName: '',
+			poolId: '',
+
+			totalConnections: 0,
+			availableConnections: 0,
+			borrowedConnections: 0,
+			peakConnections: 0,
+			connectionsCreated: 0,
+			connectionsClosed: 0,
+			failedConnections: 0,
+
+			// tempos/esperas
+			connectionWaitTime: 0,
+			connectionBorrowTime: 0,
+			cumulativeConnectionBorrowTime: 0,
+			cumulativeConnectionReturnTime: 0,
+			averageConnectionWaitTime: 0,
+			maxConnectionWaitTime: 0,
+
+			// métricas avançadas
+			averageConnectionBorrowTime: 0,
+			maxConnectionBorrowTime: 0,
+			connectionLeaks: 0,
+			validationErrors: 0,
+			racFailovers: 0,
+
+			poolHealth: 'HEALTHY' as const,
+			lastHealthCheck: new Date(),
+
+			// contadores
+			connectionRequestsCount: 0,
+		};
+
+		return stats;
+	}
+
+
+	private initializeStatistics(): void {
+		this.statistics.poolId = this.poolId;
+		// Se tiver um nome configurado depois, atualize:
+		// this.statistics.poolName = `EnterprisePool_${this.poolId}`;
+		this.statistics.lastHealthCheck = new Date();
+	}
+
 
 	async initialize(): Promise<void> {
 		if (this.isInitialized) {
@@ -142,6 +194,8 @@ export class EnterpriseConnectionPool {
 			// Setup pool name
 			const poolName = `EnterprisePool_${this.poolId}`;
 			await this.dataSource.setConnectionPoolName(poolName);
+			this.statistics.poolName = poolName;
+
 
 			// Register pool with manager
 			await this.poolManager.createConnectionPool(this.dataSource);
@@ -210,7 +264,7 @@ export class EnterpriseConnectionPool {
 				isActive: true,
 				isPooled: true,
 				poolId: this.poolId,
-				labels: connectionLabels,
+				labels: connectionLabels ? [connectionLabels] : undefined, //erro aqui
 			};
 
 			// Track active connection
@@ -731,31 +785,6 @@ export class EnterpriseConnectionPool {
 	private getRecentFailoverEvents(): RacFailoverEvent[] {
 		const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 		return this.racFailoverEvents.filter(event => event.timestamp >= oneDayAgo);
-	}
-
-	private initializeStatistics(): void {
-		this.statistics = {
-			poolName: `EnterprisePool_${this.poolId}`,
-			poolId: this.poolId,
-			totalConnections: 0,
-			availableConnections: 0,
-			borrowedConnections: 0,
-			peakConnections: 0,
-			connectionsCreated: 0,
-			connectionsClosed: 0,
-			failedConnections: 0,
-			connectionWaitTime: 0,
-			connectionBorrowTime: 0,
-			cumulativeConnectionBorrowTime: 0,
-			cumulativeConnectionReturnTime: 0,
-			averageConnectionBorrowTime: 0,
-			maxConnectionBorrowTime: 0,
-			connectionLeaks: 0,
-			validationErrors: 0,
-			racFailovers: 0,
-			poolHealth: 'HEALTHY',
-			lastHealthCheck: new Date(),
-		};
 	}
 
 	private updateConnectionStatistics(
