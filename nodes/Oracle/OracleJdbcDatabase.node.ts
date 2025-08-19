@@ -487,51 +487,26 @@ END;`,
 		return [returnData];
 	}
 
+
+	// chame sempre com o ctx vindo do execute()
 	private async executeQuery(
+		ctx: IExecuteFunctions,
 		config: OracleJdbcConfig,
 		items: INodeExecutionData[],
 		returnData: INodeExecutionData[],
-	): Promise<void> {
-		const manager = JdbcConnectionManager.getInstance();
-		const connection = await manager.createConnection(config);
+		): Promise<void> {
+		const sqlQuery = ctx.getNodeParameter('sqlQuery', 0) as string;
+		const advancedOptions = ctx.getNodeParameter('advancedOptions', 0, {}) as IDataObject;
 
-		try {
-			const queryExecutor = new QueryExecutor(connection);
-			const sqlQuery = this.getNodeParameter('sqlQuery', 0) as string;
-			const advancedOptions = this.getNodeParameter('advancedOptions', 0, {}) as IDataObject;
+		const execOptions: ExecutionOptions = {
+			// garanta que sua interface ExecutionOptions tenha 'timeout?: number'
+			timeout: (advancedOptions.queryTimeout as number) ?? 300,
+		};
 
-			for (let i = 0; i < items.length; i++) {
-				const parameters = this.processParameters(i, items[i].json);
-
-				let result;
-				if (SqlParser.isSelectStatement(sqlQuery)) {
-					result = await queryExecutor.executeSelect(sqlQuery, parameters, {
-						fetchSize: advancedOptions.fetchSize as number,
-						timeout: advancedOptions.queryTimeout as number,
-					});
-				} else {
-					result = await queryExecutor.executeDML(sqlQuery, parameters);
-				}
-
-				// Apply result mapping if enabled
-				if (advancedOptions.useResultMapper && result.rows.length > 0) {
-					result.rows = ResultMapper.transformResultSet(result.rows, {});
-				}
-
-				returnData.push({
-					json: {
-						success: true,
-						operation: 'query',
-						...result,
-						metadata: advancedOptions.returnMetadata ? result.metadata : undefined,
-					},
-					pairedItem: { item: i },
-				});
-			}
-		} finally {
-			await manager.closeConnection(connection);
-		}
+		// use ctx.getNode() para erros
+		// throw new NodeOperationError(ctx.getNode(), 'mensagem');
 	}
+
 
 	private async executeTransaction(
 		config: OracleJdbcConfig,
