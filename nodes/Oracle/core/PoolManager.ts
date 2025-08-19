@@ -70,7 +70,7 @@ export interface PoolOperationOptions {
 export class PoolManager {
 	private static instance: PoolManager;
 	private pools = new Map<string, ManagedPool>();
-	private healthMonitorInterval?: NodeJS.Timer;
+	private healthMonitorInterval?: NodeJS.Timeout;		
 	private readonly HEALTH_CHECK_INTERVAL = 60000; // 1 minute
 
 	private constructor() {
@@ -272,8 +272,9 @@ export class PoolManager {
 				if (managedPool.isActive) {
 					stats[poolName] = await this.getPoolStatistics(poolName);
 				}
-			} catch (error) {
-				console.error(`Failed to get stats for pool ${poolName}:`, error.message);
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : String(error);
+				console.error(`Failed to get stats for pool ${poolName}:`, message);
 			}
 		});
 
@@ -346,11 +347,11 @@ export class PoolManager {
 			if (retryAttempts > 1 && !failFast) {
 				return enterprisePool.getConnectionWithRetry(retryAttempts, 1000);
 			} else {
-				return enterprisePool.getConnection(undefined, { timeout });
+				return enterprisePool.getConnection(undefined, { timeout }); 
 			}
 		} else {
 			const basicPool = managedPool.pool as ConnectionPool;
-			return basicPool.getConnection({ timeout });
+			return basicPool.getConnection({ timeout }); 
 		}
 	}
 
@@ -430,23 +431,25 @@ export class PoolManager {
 					lastCheck: managedPool.lastHealthCheck,
 					connectionStats,
 				});
-			} catch (error) {
-				healthSummaries.push({
-					poolName: managedPool.name,
-					poolId: managedPool.poolId,
-					type: managedPool.type,
-					isHealthy: false,
-					issues: [`Health check failed: ${error.message}`],
-					warnings: [],
-					lastCheck: new Date(),
-					connectionStats: {
-						total: 0,
-						available: 0,
-						borrowed: 0,
-						peak: 0,
-					},
-				});
-			}
+				} catch (error: unknown) {
+					const message = error instanceof Error ? error.message : String(error);
+
+					healthSummaries.push({
+						poolName: managedPool.name,
+						poolId: managedPool.poolId,
+						type: managedPool.type,
+						isHealthy: false,
+						issues: [`Health check failed: ${message}`],
+						warnings: [],
+						lastCheck: new Date(),
+						connectionStats: {
+							total: 0,
+							available: 0,
+							borrowed: 0,
+							peak: 0,
+						},
+					});
+				}
 		}
 
 		return healthSummaries;
@@ -495,7 +498,8 @@ export class PoolManager {
 			try {
 				await this.closePool(poolName);
 			} catch (error) {
-				console.error(`Failed to close pool ${poolName}:`, error.message);
+				const message = error instanceof Error ? error.message : String(error);
+				console.error(`Failed to close pool ${poolName}:`, message);
 			}
 		});
 
@@ -581,19 +585,20 @@ export class PoolManager {
 					);
 				}
 			} catch (error) {
-				console.error('Health monitoring failed:', error.message);
+				const message = error instanceof Error ? error.message : String(error);
+				console.error('Health monitoring failed:', message);
 			}
 		}, this.HEALTH_CHECK_INTERVAL);
 	}
 
-	async shutdown(): Promise<void> {
+	public async shutdown(): Promise<void> {
 		// Stop health monitoring
 		if (this.healthMonitorInterval) {
 			clearInterval(this.healthMonitorInterval);
 			this.healthMonitorInterval = undefined;
 		}
 
-		// Close all pools
+		// Close all pools (sua lógica)
 		await this.closeAllPools();
 
 		console.info('PoolManager shutdown complete');
