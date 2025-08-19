@@ -11,11 +11,24 @@ export interface OracleJdbcConfig extends OracleConnectionConfig {
 	isSuccessful: boolean;
 	responseTime: number;
 	error?: string;
+	schema?: string;
+	connectionTimeout?: number;
+	socketTimeout?: number;
+	autoCommit?: boolean;
+	host: string;
+	serviceName?: string;
+	sid?: string;
 }
 
 export interface DriverInitializationOptions {
 	classpath?: string[];
 	enableLogging?: boolean;
+	// Opções para configurar a inicialização do driver
+	jvmOptions?: string[];
+	classPath?: string[];
+	maxMemory?: string;
+	minMemory?: string;
+	debugMode?: boolean;
 }
 
 export interface ConnectionTestResult {
@@ -207,6 +220,7 @@ export interface QueryResult {
 	statistics?: QueryStatistics;
 	moreResults?: boolean;
 	updateCounts?: number[];
+	columns?: string[];
 }
 
 // Query result metadata
