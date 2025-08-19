@@ -10,6 +10,8 @@ export interface ExecutionOptions extends QueryOptions {
 	maxResultSetSize?: number;
 	streamResults?: boolean;
 	chunkSize?: number;
+	timeout?: number; 
+
 }
 
 export interface QueryPlan {
@@ -238,9 +240,9 @@ export class QueryExecutor {
 				try {
 					if (queryData.length === 1) {
 						// Single query execution
-						const { sql: querySql, parameters } = queryData[0].query;
-						const result = await this.executeQuery(querySql, parameters, options);
-						results[queryData.originalIndex] = result;
+						const { originalIndex, query } = queryData[0];
+						const result = await this.executeQuery(query.sql, query.parameters, options);
+						results[originalIndex] = result;
 						successCount++;
 					} else {
 						// Batch execution for same SQL
@@ -253,10 +255,12 @@ export class QueryExecutor {
 						});
 					}
 				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : String(error);
+
 					queryData.forEach(({ originalIndex, query }) => {
 						errors.push({
 							index: originalIndex,
-							error: error.message,
+							error: errorMessage,
 							sql: query.sql,
 						});
 					});
@@ -383,7 +387,7 @@ export class QueryExecutor {
 			const paramIndex = i + 1;
 
 			if (param === null || param === undefined) {
-				const Types = java.import('java.sql.Types');
+				const Types = java.javaImport('java.sql.Types');
 				await statement.setNull(paramIndex, Types.NULL);
 			} else {
 				await this.bindParameterByType(statement, paramIndex, param);
@@ -408,7 +412,7 @@ export class QueryExecutor {
 			} else if (valueType === 'bigint') {
 				await statement.setLong(index, Number(value));
 			} else if (value instanceof Date) {
-				const Timestamp = java.import('java.sql.Timestamp');
+				const Timestamp = java.javaImport('java.sql.Timestamp');
 				const timestamp = new Timestamp(value.getTime());
 				await statement.setTimestamp(index, timestamp);
 			} else if (Buffer.isBuffer(value)) {
@@ -420,8 +424,9 @@ export class QueryExecutor {
 				// Generic object binding
 				await statement.setObject(index, value);
 			}
-		} catch (error) {
-			throw new Error(`Failed to bind parameter at index ${index}: ${error.message}`);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new Error(`Failed to bind parameter at index ${index}: ${message}`);
 		}
 	}
 
@@ -463,7 +468,8 @@ export class QueryExecutor {
 				} catch (error) {
 					// Handle individual column errors gracefully
 					row[col.name] = null;
-					console.warn(`Failed to extract column ${col.name}:`, error.message);
+					const message = error instanceof Error ? error.message : String(error);
+					console.warn(`Failed to extract column ${col.name}:`, message);
 				}
 			}
 
@@ -606,8 +612,8 @@ export class QueryExecutor {
 			await statement.setFetchSize(options.fetchSize);
 		}
 
-		if (options.timeout) {
-			await statement.setQueryTimeout(options.timeout);
+		if (options.timeout) { 
+			await statement.setQueryTimeout(options.timeout); 
 		}
 
 		if (options.maxRows) {
@@ -634,9 +640,14 @@ export class QueryExecutor {
 			// Manage cache size
 			if (this.statementCache.size >= this.MAX_CACHE_SIZE) {
 				const firstKey = this.statementCache.keys().next().value;
-				const oldStatement = this.statementCache.get(firstKey);
-				await oldStatement.close();
-				this.statementCache.delete(firstKey);
+
+				if (firstKey !== undefined) {
+					const oldStatement = this.statementCache.get(firstKey);
+					if (oldStatement) {
+						await oldStatement.close();
+					}
+					this.statementCache.delete(firstKey);
+				}
 			}
 
 			this.statementCache.set(sql, statement);
@@ -644,6 +655,7 @@ export class QueryExecutor {
 
 		return statement;
 	}
+
 
 	private groupQueriesBySQL(
 		queries: Array<{ sql: string; parameters?: any[] }>,
@@ -727,8 +739,9 @@ export class QueryExecutor {
 		for (const statement of this.statementCache.values()) {
 			try {
 				await statement.close();
-			} catch (error) {
-				console.warn('Failed to close cached statement:', error.message);
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : String(error);
+				console.warn(`Failed to close cached statement:`, message);
 			}
 		}
 		this.statementCache.clear();
@@ -741,4 +754,5 @@ export class QueryExecutor {
 	async close(): Promise<void> {
 		await this.clearStatementCache();
 	}
+
 }
