@@ -1,11 +1,15 @@
 import * as java from 'java-bridge';
-import { OracleJdbcConfig } from '../types/JdbcTypes';
+import {
+	OracleJdbcConfig,
+	ConnectionTestResult,
+	DriverInitializationOptions
+} from '../types/JdbcTypes';
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
 
 export class OracleJdbcDriver {
   private static initialized = false;
   
-  static async initialize(options: DriverInitializationOptions = {}): Promise<void> {
+  static async initialize(options: DriverInitializationOptions = {}): Promise<void> { //erro aqui Cannot find name 'DriverInitializationOptions'.ts(2304) type DriverInitializationOptions = /*unresolved*/ any
     if (this.initialized) {
       return;
     }
@@ -22,7 +26,9 @@ export class OracleJdbcDriver {
       
       this.initialized = true;
     } catch (error) {
-      throw new Error(`Failed to initialize Oracle JDBC driver: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+
+      throw new Error(`Failed to initialize Oracle JDBC driver: ${message}`);
     }
   }
 
@@ -37,55 +43,66 @@ export class OracleJdbcDriver {
     try {
       java.addClasspaths(jars);
     } catch (error) {
-      console.warn('Some JAR files could not be added to classpath:', error.message);
+      const message = error instanceof Error ? error.message : String(error);
+
+      console.warn('Some JAR files could not be added to classpath:', message);
     }
   }
 
   private static async registerOracleDriver(): Promise<void> {
     try {
-      const OracleDriver = java.import('oracle.jdbc.OracleDriver');
-      const DriverManager = java.import('java.sql.DriverManager');
+      const OracleDriver = java.javaImport('oracle.jdbc.OracleDriver');
+      const DriverManager = java.javaImport('java.sql.DriverManager');
       
       const driverInstance = java.newInstanceSync('oracle.jdbc.OracleDriver');
       await DriverManager.registerDriver(driverInstance);
-    } catch (error) {
-      throw new Error(`Failed to register Oracle JDBC driver: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      throw new Error(`Failed to register Oracle JDBC driver: ${message}`);
     }
   }
 
+  private static buildConnectionString(config: OracleJdbcConfig): string {
+    // Exemplo de construção de connection string Oracle JDBC
+    return `jdbc:oracle:thin:@${config.host}:${config.port}/${config.serviceName}`;
+  }
+  
   static async testConnection(config: OracleJdbcConfig): Promise<ConnectionTestResult> {
-    await this.initialize();
-    
-    const startTime = Date.now();
-    try {
-      const connectionUrl = this.buildConnectionString(config);
-      const DriverManager = java.import('java.sql.DriverManager');
-      
-      const connection = await DriverManager.getConnection(
-        connectionUrl,
-        config.username,
-        config.password
-      );
+		await this.initialize();
 
-      // Test basic query
-      const statement = await connection.createStatement();
-      const resultSet = await statement.executeQuery('SELECT 1 FROM dual');
-      const hasResult = await resultSet.next();
-      
-      await resultSet.close();
-      await statement.close();
-      await connection.close();
+		const startTime = Date.now();
+		try {
+			const connectionUrl = this.buildConnectionString(config);
 
-      return {
-        isSuccessful: hasResult,
-        responseTime: Date.now() - startTime
-      };
-    } catch (error) {
-      return {
-        isSuccessful: false,
-        responseTime: Date.now() - startTime,
-        error: error.message
-      };
-    }
-  }
+			const DriverManager = java.javaImport('java.sql.DriverManager');
+
+			const connection = await DriverManager.getConnection(
+				connectionUrl,
+				config.username,
+				config.password
+			);
+
+			const statement = await connection.createStatement();
+			const resultSet = await statement.executeQuery('SELECT 1 FROM dual');
+			const hasResult = await resultSet.next();
+
+			await resultSet.close();
+			await statement.close();
+			await connection.close();
+
+			return {
+				isSuccessful: hasResult,
+				responseTime: Date.now() - startTime
+			};
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			return {
+				isSuccessful: false,
+				responseTime: Date.now() - startTime,
+				error: message
+			};
+		}
+	}
 }
