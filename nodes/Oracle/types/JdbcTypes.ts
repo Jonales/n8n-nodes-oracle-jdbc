@@ -8,6 +8,20 @@ export interface OracleJdbcConfig extends OracleConnectionConfig {
 	jdbcUrl?: string;
 	driverClassName?: string;
 	validationQuery?: string;
+	isSuccessful: boolean;
+	responseTime: number;
+	error?: string;
+}
+
+export interface DriverInitializationOptions {
+	classpath?: string[];
+	enableLogging?: boolean;
+}
+
+export interface ConnectionTestResult {
+	isSuccessful: boolean;
+	responseTime: number;
+	error?: string;
 }
 
 // Extended JDBC connection options
@@ -322,6 +336,7 @@ export interface QueryOptions {
 	explainPlan?: boolean;
 	hints?: string[];
 	tags?: { [key: string]: string };
+	timeout?: number;
 }
 
 // ResultSet types
