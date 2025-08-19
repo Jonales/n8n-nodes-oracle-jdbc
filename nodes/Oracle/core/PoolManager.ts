@@ -1,3 +1,12 @@
+
+/**
+ * Oracle para n8n-nodes-oracle-jdbc
+ * Suporte para modo JDBC
+ *
+ * @author Jônatas Meireles Sousa Vieira
+ * @version 0.0.1-rc.1
+ */
+
 import { JdbcConnection, OracleJdbcConfig } from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
@@ -260,6 +269,9 @@ export class PoolManager {
 				racFailovers: 0,
 				poolHealth: 'HEALTHY',
 				lastHealthCheck: new Date(),
+				averageConnectionWaitTime: 0,
+				maxConnectionWaitTime: 0,
+				connectionRequestsCount: 0,
 			};
 		}
 	}
