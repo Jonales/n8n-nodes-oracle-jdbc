@@ -192,8 +192,8 @@ export interface OraclePoolProperties extends OracleConnectionProperties {
 	'oracle.ucp.connectionFactoryProperties'?: string;
 
 	// Custom UCP properties
-	maxStatements?: number;
-	fastConnectionFailoverEnabled?: boolean;
+	maxStatements?: string;
+	fastConnectionFailoverEnabled?: string;
 	connectionPoolName?: string;
 }
 
