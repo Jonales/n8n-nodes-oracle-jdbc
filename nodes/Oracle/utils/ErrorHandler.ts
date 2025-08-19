@@ -13,6 +13,7 @@ export interface ErrorContext {
 	timestamp?: Date;
 	stackTrace?: string;
 	additionalInfo?: { [key: string]: any };
+	poolName?: string;
 }
 
 export interface ErrorClassification {
