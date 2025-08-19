@@ -70,11 +70,11 @@ export class EnterpriseConnectionPool {
 
 	// Connection tracking
 	private activeConnections = new Map<string, { borrowed: Date; labels?: ConnectionLabel }>();
-	private statistics: PoolStatistics;
+	private statistics: PoolStatistics; //erro aqui Property 'statistics' has no initializer and is not definitely assigned in the constructor.ts(2564) (property) EnterpriseConnectionPool.statistics: PoolStatistics
 
 	// RAC support
 	private racFailoverEvents: RacFailoverEvent[] = [];
-	private lastFailoverCheck = new Date();
+	private lastFailoverCheck = new Date(); 
 
 	constructor(config: OracleJdbcConfig, poolConfig: AdvancedPoolConfiguration = {}) {
 		this.poolId = uuidv4();
@@ -115,13 +115,13 @@ export class EnterpriseConnectionPool {
 			await OracleJdbcDriver.initialize();
 
 			// Create Universal Connection Pool Manager
-			const UniversalConnectionPoolManagerImpl = java.import(
+			const UniversalConnectionPoolManagerImpl = java.javaImport(
 				'oracle.ucp.admin.UniversalConnectionPoolManagerImpl',
 			);
 			this.poolManager = await UniversalConnectionPoolManagerImpl.getInstance();
 
 			// Create Pool Data Source
-			const PoolDataSourceFactory = java.import('oracle.ucp.jdbc.PoolDataSourceFactory');
+			const PoolDataSourceFactory = java.javaImport('oracle.ucp.jdbc.PoolDataSourceFactory');
 			this.dataSource = await PoolDataSourceFactory.getPoolDataSource();
 
 			// Configure connection URL (with RAC support if enabled)
@@ -248,8 +248,10 @@ export class EnterpriseConnectionPool {
 
 				// Check if error is retryable
 				if (attempt < maxRetries && ErrorHandler.isRetryableError(error)) {
+					const message = error instanceof Error ? error.message : String(error);
+					
 					console.warn(`Connection attempt ${attempt} failed, retrying in ${retryDelayMs}ms...`, {
-						error: error.message,
+						error: message,
 						poolId: this.poolId,
 						attempt,
 					});
@@ -476,8 +478,10 @@ export class EnterpriseConnectionPool {
 				recommendations,
 				racStatus,
 			};
-		} catch (error) {
-			issues.push(`Health check failed: ${error.message}`);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			issues.push(`Health check failed: ${message}`);
 			return {
 				isHealthy: false,
 				score: 0,
@@ -714,8 +718,10 @@ export class EnterpriseConnectionPool {
 				if (isHealthy) {
 					activeNodes++;
 				}
-			} catch (error) {
-				console.warn(`RAC node ${node.host}:${node.port} health check failed:`, error.message);
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : String(error);
+
+				console.warn(`RAC node ${node.host}:${node.port} health check failed:`, message);
 			}
 		}
 
