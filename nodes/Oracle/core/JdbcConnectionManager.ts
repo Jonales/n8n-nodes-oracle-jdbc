@@ -7,13 +7,13 @@ export class JdbcConnectionManager {
   private static instance: JdbcConnectionManager;
   
   async createConnection(config: OracleJdbcConfig): Promise<JdbcConnection> {
-    await this.initialize();
+    await this.initialize(); // Property 'initialize' does not exist on type 'JdbcConnectionManager'.ts(2339)
     
     const connectionId = uuidv4();
     
     try {
-      const connectionUrl = OracleJdbcDriver.buildConnectionString(config);
-      const DriverManager = java.import('java.sql.DriverManager');
+      const connectionUrl = OracleJdbcDriver.buildConnectionString(config); //erro aqui Property 'buildConnectionString' is private and only accessible within class 'OracleJdbcDriver'.ts(2341) (method) OracleJdbcDriver.buildConnectionString(config: OracleJdbcConfig): string
+      const DriverManager = java.javaImport('java.sql.DriverManager');
       
       const connection = await DriverManager.getConnection(
         connectionUrl,
@@ -55,11 +55,11 @@ export class JdbcConnectionManager {
       const isSelect = sql.trim().toLowerCase().startsWith('select');
       
       if (isSelect) {
-        const resultSet = parameters?.length > 0 
+        const resultSet = parameters?.length > 0   //erro aqui  'parameters.length' is possibly 'undefined'.ts(18048) (property) Array<any>.length: number | undefined Gets or sets the length of the array. This is a number one higher than the highest index in the array.
           ? await statement.executeQuery()
           : await statement.executeQuery(sql);
           
-        const rows = await this.extractResultSet(resultSet);
+        const rows = await this.extractResultSet(resultSet); //erro aqui  Property 'extractResultSet' does not exist on type 'JdbcConnectionManager'.ts(2339)
         await resultSet.close();
         
         return {
@@ -68,8 +68,8 @@ export class JdbcConnectionManager {
           executionTime: Date.now() - startTime
         };
       } else {
-        const updateCount = parameters?.length > 0
-          ? await statement.executeUpdate()
+        const updateCount = parameters?.length > 0 //erro aqui  'parameters.length' is possibly 'undefined'.ts(18048) (property) Array<any>.length: number | undefined Gets or sets the length of the array. This is a number one higher than the highest index in the array.
+           ? await statement.executeUpdate()
           : await statement.executeUpdate(sql);
           
         return {
@@ -78,8 +78,10 @@ export class JdbcConnectionManager {
           executionTime: Date.now() - startTime
         };
       }
-    } catch (error) {
-      throw new Error(`Query execution failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      throw new Error(`Query execution failed: ${message}`);
     }
   }
 
@@ -89,7 +91,7 @@ export class JdbcConnectionManager {
       const paramIndex = i + 1;
 
       if (param === null || param === undefined) {
-        const Types = java.import('java.sql.Types');
+        const Types = java.javaImport('java.sql.Types');
         await statement.setNull(paramIndex, Types.NULL);
       } else if (typeof param === 'string') {
         await statement.setString(paramIndex, param);
@@ -102,7 +104,7 @@ export class JdbcConnectionManager {
       } else if (typeof param === 'boolean') {
         await statement.setBoolean(paramIndex, param);
       } else if (param instanceof Date) {
-        const Timestamp = java.import('java.sql.Timestamp');
+        const Timestamp = java.javaImport('java.sql.Timestamp');
         const timestamp = java.newInstanceSync('java.sql.Timestamp', param.getTime());
         await statement.setTimestamp(paramIndex, timestamp);
       } else {
