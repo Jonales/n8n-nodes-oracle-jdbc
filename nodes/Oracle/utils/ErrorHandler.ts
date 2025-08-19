@@ -140,11 +140,9 @@ export class ErrorHandler {
 		// Log error for monitoring
 		this.logError(errorDetails);
 
-		// Create N8N error with enhanced details
+		// Create N8N error with enhanced details (CORREÇÃO: removido httpCode e cause)
 		const nodeError = new NodeOperationError({} as any, userMessage, {
 			description: this.formatErrorDescription(errorDetails),
-			httpCode: this.getHttpCodeFromClassification(classification),
-			cause: error,
 		});
 
 		return nodeError;
@@ -577,43 +575,39 @@ export class ErrorHandler {
 	}
 
 	private static formatErrorDescription(errorDetails: JdbcErrorDetails): string {
-		let description = errorDetails.technicalMessage;
+		let description = `**Technical Details:**\n${errorDetails.technicalMessage}\n`;
 
 		if (errorDetails.recoverySteps.length > 0) {
-			description += '\n\nRecovery Steps:\n';
+			description += '\n**Recovery Steps:**\n';
 			errorDetails.recoverySteps.forEach((step, index) => {
 				description += `${index + 1}. ${step}\n`;
 			});
 		}
 
 		if (errorDetails.classification.retryable) {
-			description += `\nThis error is retryable. `;
+			description += '\n**Retry Information:**\n';
+			description += 'This error is retryable. ';
 			if (errorDetails.classification.estimatedRecoveryTime) {
-				description += `Retry after ${errorDetails.classification.estimatedRecoveryTime}ms.`;
+				description += `Recommended retry delay: ${errorDetails.classification.estimatedRecoveryTime}ms.`;
 			}
+		}
+
+		if (errorDetails.relatedErrors && errorDetails.relatedErrors.length > 0) {
+			description += '\n**Related Error Codes:**\n';
+			description += errorDetails.relatedErrors.join(', ');
+		}
+
+		if (errorDetails.documentationLinks && errorDetails.documentationLinks.length > 0) {
+			description += '\n\n**Documentation:**\n';
+			errorDetails.documentationLinks.forEach(link => {
+				description += `• ${link}\n`;
+			});
 		}
 
 		return description;
 	}
 
-	private static getHttpCodeFromClassification(classification: ErrorClassification): string {
-		switch (classification.category) {
-			case ErrorCategory.AUTHENTICATION:
-				return '401';
-			case ErrorCategory.AUTHORIZATION:
-				return '403';
-			case ErrorCategory.CONSTRAINT_VIOLATION:
-				return '409';
-			case ErrorCategory.RESOURCE_EXHAUSTION:
-				return '507';
-			case ErrorCategory.TIMEOUT:
-				return '408';
-			case ErrorCategory.CONNECTION:
-				return '503';
-			default:
-				return '500';
-		}
-	}
+	// REMOVIDO: getHttpCodeFromClassification() - não é suportado pelo NodeOperationError
 
 	private static getLogLevel(severity: ErrorSeverity): string {
 		switch (severity) {
@@ -641,6 +635,84 @@ export class ErrorHandler {
 			timestamp: new Date(),
 			stackTrace: new Error().stack,
 			...options,
+		};
+	}
+
+	// Métodos adicionais para análise de erros
+
+	/**
+	 * Verifica se um erro específico está acontecendo frequentemente
+	 */
+	static isFrequentError(errorPattern: string, timeWindowMs: number = 300000): boolean {
+		const now = Date.now();
+		const recentErrors = this.errorHistory.filter(error => {
+			const errorTime = error.context.timestamp?.getTime() || 0;
+			return (now - errorTime) <= timeWindowMs;
+		});
+
+		const matchingErrors = recentErrors.filter(error =>
+			error.technicalMessage.includes(errorPattern) ||
+			error.userMessage.includes(errorPattern)
+		);
+
+		return matchingErrors.length >= 3; // 3 ou mais ocorrências na janela de tempo
+	}
+
+	/**
+	 * Obtém sugestões de otimização baseadas no histórico de erros
+	 */
+	static getOptimizationSuggestions(): string[] {
+		const suggestions: string[] = [];
+		const stats = this.getErrorStatistics();
+
+		// Sugestões baseadas em categorias frequentes
+		const topCategory = Object.keys(stats.errorsByCategory)
+			.reduce((a, b) => stats.errorsByCategory[a] > stats.errorsByCategory[b] ? a : b, '');
+
+		switch (topCategory) {
+			case ErrorCategory.CONNECTION:
+				suggestions.push('Consider implementing connection pooling with proper sizing');
+				suggestions.push('Review database server capacity and network stability');
+				break;
+			case ErrorCategory.TIMEOUT:
+				suggestions.push('Analyze slow queries and add appropriate indexes');
+				suggestions.push('Consider increasing query timeout values for complex operations');
+				break;
+			case ErrorCategory.TRANSACTION:
+				suggestions.push('Optimize transaction ordering to reduce deadlock probability');
+				suggestions.push('Keep transactions as short as possible');
+				break;
+			case ErrorCategory.RESOURCE_EXHAUSTION:
+				suggestions.push('Monitor database resource usage and plan for capacity');
+				suggestions.push('Implement data archiving strategies for large tables');
+				break;
+		}
+
+		// Sugestões baseadas na taxa de retry
+		const retryRate = (stats.retryableErrors / stats.totalErrors) * 100;
+		if (retryRate > 50) {
+			suggestions.push('High retry rate detected - review infrastructure stability');
+		}
+
+		return suggestions;
+	}
+
+	/**
+	 * Exporta o histórico de erros para análise externa
+	 */
+	static exportErrorHistory(): {
+		exportDate: string;
+		totalErrors: number;
+		errors: JdbcErrorDetails[];
+		statistics: ReturnType<typeof ErrorHandler.getErrorStatistics>;
+		suggestions: string[];
+	} {
+		return {
+			exportDate: new Date().toISOString(),
+			totalErrors: this.errorHistory.length,
+			errors: [...this.errorHistory], // Clone do array
+			statistics: this.getErrorStatistics(),
+			suggestions: this.getOptimizationSuggestions(),
 		};
 	}
 }
