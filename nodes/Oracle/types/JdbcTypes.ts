@@ -1,3 +1,12 @@
+
+/**
+ * Oracle para n8n-nodes-oracle-jdbc
+ * Suporte para modo JDBC
+ *
+ * @author Jônatas Meireles Sousa Vieira
+ * @version 0.0.1-rc.1
+ */
+
 import { AdvancedPoolConfig, OracleConnectionConfig, SSLConfiguration } from './ConfigTypes';
 
 // Core JDBC configuration
@@ -91,6 +100,15 @@ export type TransactionIsolationLevel =
 	| 'REPEATABLE_READ'
 	| 'SERIALIZABLE';
 
+// Connection labels for session state management
+export interface ConnectionLabel {
+	key: string;
+	value: string;
+	cost?: number;
+	applyCallback?: string;
+	removeCallback?: string;
+}
+
 // Enhanced JDBC connection with metadata
 export interface JdbcConnection {
 	id: string;
@@ -106,15 +124,6 @@ export interface JdbcConnection {
 	metadata?: ConnectionMetadata;
 	statistics?: ConnectionStatistics;
 	transactionInfo?: ActiveTransactionInfo;
-}
-
-// Connection labels for session state management
-export interface ConnectionLabel {
-	key: string;
-	value: string;
-	cost?: number;
-	applyCallback?: string;
-	removeCallback?: string;
 }
 
 // Connection metadata
