@@ -1,13 +1,22 @@
+
+/**
+ * Oracle para n8n-nodes-oracle-jdbc
+ * Suporte para modo JDBC
+ *
+ * @author Jônatas Meireles Sousa Vieira
+ * @version 0.0.1-rc.1
+ */
+
 import { PoolConfiguration } from './ConnectionPool';
 
 export interface AdvancedPoolConfiguration extends PoolConfiguration {
-	// 🔄 Retry e Failover
+	// Retry e Failover
 	connectionRetryAttempts?: number;
 	connectionRetryDelayMs?: number;
 	fastConnectionFailoverEnabled?: boolean;
 	oracleRacFailoverType?: 'SELECT' | 'SESSION' | 'NONE';
 
-	// 📊 Monitoramento e Health Check
+	// Monitoramento e Health Check
 	statsIntervalSeconds?: number;
 	enableConnectionHealthCheck?: boolean;
 	connectionTestQuery?: string;
@@ -20,34 +29,34 @@ export interface AdvancedPoolConfiguration extends PoolConfiguration {
 	loginTimeoutSeconds?: number; // Timeout de login
 	maxLifetimeSeconds?: number; // Tempo máximo de vida da conexão
 
-	// 🏗️ Oracle RAC/ADG Support
+	// Oracle RAC/ADG Support
 	enableRacSupport?: boolean;
 	racNodes?: RacNodeConfig[];
 	loadBalanceConnectionTimeout?: number;
 
-	// ☁️ Oracle Cloud Infrastructure (OCI)
+	// Oracle Cloud Infrastructure (OCI)
 	ociConfigProfile?: string;
 	enableOciIamAuth?: boolean;
 	walletLocation?: string;
 
-	// 🔐 Security & SSL
+	// Security & SSL
 	sslTruststore?: string;
 	sslTruststorePassword?: string;
 	sslKeystore?: string;
 	sslKeystorePassword?: string;
 	enableOracleWallet?: boolean;
 
-	// 📈 Advanced Pooling
+	// Advanced Pooling
 	connectionHarvestMaxCount?: number;
 	connectionHarvestable?: boolean;
 	abandonedConnectionTimeout?: number;
 	timeToLiveConnectionTimeout?: number;
 
-	// 🎯 Connection Labeling (for session state)
+	// Connection Labeling (for session state)
 	enableConnectionLabeling?: boolean;
 	defaultConnectionLabels?: { [key: string]: string };
 
-	// 🎛️ Advanced Performance
+	// Advanced Performance
 	enableJmxMonitoring?: boolean;
 	jmxDomainName?: string;
 	enableConnectionValidation?: boolean;
