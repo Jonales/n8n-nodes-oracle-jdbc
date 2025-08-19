@@ -79,10 +79,49 @@ export class ConnectionPool {
 	private isShuttingDown = false;
 
 	// Monitoring
-	private monitoringTimer?: NodeJS.Timer;
+	private monitoringTimer?: NodeJS.Timeout;
 	private activeConnections = new Map<string, Date>();
-	private statistics: PoolStatistics;
+	private statistics: PoolStatistics = ConnectionPool.createInitialStatistics();
 
+	constructor(config: OracleJdbcConfig, poolConfig: PoolConfiguration = {}) {
+		this.poolId = uuidv4();
+		this.config = config;
+		this.poolConfig = poolConfig;
+
+		// Ajusta stats com o poolId real (poolName pode ser preenchido depois)
+		this.statistics.poolId = this.poolId;
+	}
+
+
+	// Se você souber o nome do pool depois, chame isso:
+	public setPoolName(name: string) {
+		this.statistics.poolName = name;
+	}
+
+	private static createInitialStatistics(): PoolStatistics {
+		return {
+			poolName: '',
+			poolId: '',
+			totalConnections: 0,
+			availableConnections: 0,
+			borrowedConnections: 0,
+			peakConnections: 0,
+			connectionsCreated: 0,
+			connectionsClosed: 0,
+			failedConnections: 0,
+
+			connectionRequestsCount: 0,
+			averageConnectionWaitTime: 0,
+			maxConnectionWaitTime: 0,
+			connectionLeaks: 0,
+			validationErrors: 0,
+
+			poolHealth: 'HEALTHY',
+			lastHealthCheck: new Date(),
+		};
+	}
+	
+	/*
 	constructor(config: OracleJdbcConfig, poolConfig: PoolConfiguration = {}) {
 		this.poolId = uuidv4();
 		this.config = config;
@@ -115,7 +154,7 @@ export class ConnectionPool {
 		};
 
 		this.initializeStatistics();
-	}
+	}*/
 
 	async initialize(): Promise<void> {
 		if (this.isInitialized) {
@@ -132,7 +171,7 @@ export class ConnectionPool {
 			await OracleJdbcDriver.initialize();
 
 			// Create Universal Connection Pool (UCP)
-			const PoolDataSourceFactory = java.import('oracle.ucp.jdbc.PoolDataSourceFactory');
+			const PoolDataSourceFactory = java.javaImport('oracle.ucp.jdbc.PoolDataSourceFactory');
 			this.dataSource = await PoolDataSourceFactory.getPoolDataSource();
 
 			// Configure basic properties
@@ -329,8 +368,10 @@ export class ConnectionPool {
 				warnings,
 				recommendations,
 			};
-		} catch (error) {
-			issues.push(`Health check failed: ${error.message}`);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			issues.push(`Health check failed: ${message}`);
 			return { isHealthy: false, issues, warnings, recommendations };
 		}
 	}
@@ -345,7 +386,18 @@ export class ConnectionPool {
 		try {
 			// Stop monitoring
 			if (this.monitoringTimer) {
-				clearInterval(this.monitoringTimer);
+				clearInterval(this.monitoringTimer); /* erro aqui
+									No overload matches this call.
+									Overload 1 of 2, '(timeout: string | number | Timeout | undefined): void', gave the following error.
+										Argument of type 'Timer' is not assignable to parameter of type 'string | number | Timeout | undefined'.
+										Type 'Timer' is missing the following properties from type 'Timeout': close, _onTimeout, [Symbol.dispose]
+									Overload 2 of 2, '(id: number | undefined): void', gave the following error.
+										Argument of type 'Timer' is not assignable to parameter of type 'number'.ts(2769)
+
+										(property) ConnectionPool.monitoringTimer?: NodeJS.Timer
+				*/
+
+
 				this.monitoringTimer = undefined;
 			}
 
@@ -412,6 +464,7 @@ export class ConnectionPool {
 	// Configuration methods
 	private async configureBasicProperties(): Promise<void> {
 		await this.dataSource.setConnectionFactoryClassName('oracle.jdbc.pool.OracleDataSource');
+
 		await this.dataSource.setURL(OracleJdbcDriver.buildConnectionString(this.config));
 		await this.dataSource.setUser(this.config.username);
 		await this.dataSource.setPassword(this.config.password);
