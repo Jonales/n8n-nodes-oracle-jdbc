@@ -1,5 +1,4 @@
 import * as java from 'java-bridge';
-
 import { JdbcConnection } from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
