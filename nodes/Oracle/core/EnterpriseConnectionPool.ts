@@ -1,14 +1,17 @@
+
+/**
+ * Oracle para n8n-nodes-oracle-jdbc
+ * Suporte para modo JDBC
+ *
+ * @author Jônatas Meireles Sousa Vieira
+ * @version 0.0.1-rc.1
+ */
+
 import * as java from 'java-bridge';
 import { v4 as uuidv4 } from 'uuid';
+import { JdbcConnection, OracleJdbcConfig, QueryOptions } from '../types/JdbcTypes';
 
-//import { JdbcConnection, OracleJdbcConfig, QueryOptions } from '../types/JdbcTypes';
-
-import {
-  JdbcConnection,
-  OracleJdbcConfig,
-  QueryOptions,
-  ConnectionLabel, // <- use este tipo
-} from '../types/JdbcTypes';
+import type { ConnectionLabel } from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
 
@@ -43,7 +46,7 @@ export interface PoolStatistics {
 	connectionRequestsCount: number;
 }
 
-export interface ConnectionLabel {
+export interface UcpConnectionLabel  {
 	[key: string]: string;
 }
 
