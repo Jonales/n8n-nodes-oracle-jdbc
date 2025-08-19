@@ -78,6 +78,9 @@ export interface OracleConnectionConfig extends DatabaseConnectionConfig {
 	clientInfo?: string;
 	module?: string;
 	action?: string;
+	isSuccessful: boolean;
+	responseTime: number;
+	error?: string;
 }
 
 // Oracle National Language Support configuration
