@@ -291,8 +291,9 @@ export class StoredProcedureExecutor {
 			try {
 				await cursorStatement.close();
 				this.cursorStatements.delete(cursorName);
-			} catch (error) {
-				console.warn(`Failed to close cursor ${cursorName}:`, error.message);
+			} catch (error: unknown) {
+				const message = error instanceof Error ? error.message : String(error);
+				console.warn(`Failed to close cursor ${cursorName}:`, message);
 			}
 		}
 	}
@@ -355,7 +356,7 @@ export class StoredProcedureExecutor {
 				case 'NUMBER':
 				case 'NUMERIC':
 				case 'DECIMAL':
-					const BigDecimal = java.import('java.math.BigDecimal');
+					const BigDecimal = java.javaImport('java.math.BigDecimal');
 					const decimal = new BigDecimal(String(value));
 					await statement.setBigDecimal(index, decimal);
 					break;
@@ -377,7 +378,7 @@ export class StoredProcedureExecutor {
 				case 'DATE':
 				case 'TIMESTAMP':
 					const date = value instanceof Date ? value : new Date(value);
-					const Timestamp = java.import('java.sql.Timestamp');
+					const Timestamp = java.javaImport('java.sql.Timestamp');
 					const timestamp = new Timestamp(date.getTime());
 					await statement.setTimestamp(index, timestamp);
 					break;
@@ -414,8 +415,9 @@ export class StoredProcedureExecutor {
 				default:
 					await statement.setObject(index, value);
 			}
-		} catch (error) {
-			throw new Error(`Failed to bind parameter ${param.name} at index ${index}: ${error.message}`);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new Error(`Failed to bind parameter ${param.name} at index ${index}: ${message}`);
 		}
 	}
 
@@ -461,8 +463,9 @@ export class StoredProcedureExecutor {
 
 					output[param.name] = value;
 				} catch (error) {
-					console.warn(`Failed to extract parameter ${param.name}:`, error.message);
-					output[param.name] = null;
+					const message = error instanceof Error ? error.message : String(error);
+					console.warn(`Failed to extract parameter ${param.name}:`, message);
+					output[param.name] = [];
 				}
 			}
 		}
@@ -507,8 +510,9 @@ export class StoredProcedureExecutor {
 						maxRows: options.maxCursorRows,
 					});
 					cursors[param.name] = cursorData;
-				} catch (error) {
-					console.warn(`Failed to extract cursor ${param.name}:`, error.message);
+				}  catch (error) {
+					const message = error instanceof Error ? error.message : String(error);
+					console.warn(`Failed to extract cursor ${param.name}:`, message);
 					cursors[param.name] = [];
 				}
 			}
@@ -582,20 +586,20 @@ export class StoredProcedureExecutor {
 		statement: any,
 		paramIndex: number,
 		param: ProcedureParameter,
-	): Promise<string> {
+	): Promise<string | null> {
 		try {
 			const cursorResultSet = await statement.getObject(paramIndex);
 
 			if (cursorResultSet) {
-				// Store cursor for later retrieval
 				const cursorName = param.name;
 				this.cursorStatements.set(cursorName, cursorResultSet);
 				return `CURSOR:${cursorName}`;
 			}
 
-			return null;
-		} catch (error) {
-			throw new Error(`Failed to handle cursor parameter ${param.name}: ${error.message}`);
+			return null; // Agora permitido pelo tipo
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+			throw new Error(`Failed to handle cursor parameter ${param.name}: ${message}`);
 		}
 	}
 
@@ -637,7 +641,7 @@ export class StoredProcedureExecutor {
 
 	private async setXMLTypeParameter(statement: any, index: number, value: any): Promise<void> {
 		try {
-			const XMLType = java.import('oracle.xdb.XMLType');
+			const XMLType = java.javaImport('oracle.xdb.XMLType');
 			const connection = this.connection.connection;
 
 			let xmlString: string;
@@ -664,7 +668,7 @@ export class StoredProcedureExecutor {
 		try {
 			if (Array.isArray(value)) {
 				const connection = this.connection.connection;
-				const Array = java.import('java.sql.Array');
+				const Array = java.javaImport('java.sql.Array');
 
 				// Convert array elements to appropriate Java types
 				const javaArray = value.map(item => this.convertToJavaType(item));
@@ -690,7 +694,7 @@ export class StoredProcedureExecutor {
 		if (typeof value === 'number') return value;
 		if (typeof value === 'boolean') return value;
 		if (value instanceof Date) {
-			const Timestamp = java.import('java.sql.Timestamp');
+			const Timestamp = java.javaImport('java.sql.Timestamp');
 			return new Timestamp(value.getTime());
 		}
 
@@ -698,7 +702,7 @@ export class StoredProcedureExecutor {
 	}
 
 	private getSqlType(dataType: string): any {
-		const Types = java.import('java.sql.Types');
+		const Types = java.javaImport('java.sql.Types');
 
 		switch (dataType.toUpperCase()) {
 			case 'VARCHAR2':
@@ -874,7 +878,7 @@ export class StoredProcedureExecutor {
         ORDER BY position
       `;
 
-			const QueryExecutor = java.import('../QueryExecutor');
+			const QueryExecutor = java.javaImport('../QueryExecutor');
 			const executor = new QueryExecutor(this.connection);
 			const result = await executor.executeSelect(sql, [procedureName]);
 
@@ -922,14 +926,28 @@ export class StoredProcedureExecutor {
 
 	static parsePackageName(fullName: string): PackageInfo {
 		const parts = fullName.split('.');
+
 		if (parts.length === 1) {
-			return { owner: '', packageName: '', procedureName: parts[0] };
+			return {
+				owner: '',
+				packageName: '',
+				procedureName: parts[0],
+			};
 		} else if (parts.length === 2) {
-			return { owner: '', packageName: parts, procedureName: parts[1] };
+			return {
+				owner: '',
+				packageName: parts[0], // 🟢 Corrigido
+				procedureName: parts[1],
+			};
 		} else if (parts.length === 3) {
-			return { owner: parts, packageName: parts[1], procedureName: parts[2] };
+			return {
+				owner: parts[0],        // 🟢 Corrigido
+				packageName: parts[1],
+				procedureName: parts[2],
+			};
 		} else {
 			throw new Error(`Invalid procedure name format: ${fullName}`);
 		}
 	}
+
 }
