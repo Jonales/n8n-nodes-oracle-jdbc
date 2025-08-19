@@ -1,8 +1,10 @@
-import { java } from 'java';
+import * as java from 'java-bridge';
+
 import { IDataObject, INodeExecutionData } from 'n8n-workflow';
 
 import { ParameterDefinition, ParameterMode, ParameterType } from '../types/JdbcTypes';
 import { OracleTypeUtils } from '../types/OracleTypes';
+import { string } from 'sql-formatter/dist/cjs/lexer/regexFactory';
 
 export interface ParameterBindingOptions {
 	validateTypes?: boolean;
@@ -83,8 +85,11 @@ export class ParameterBinder {
 			try {
 				const processed = this.processParameter(param, inputData, opts, i);
 				processedParams.push(processed);
-			} catch (error) {
-				throw new Error(`Parameter ${i + 1} (${param.name || 'unnamed'}): ${error.message}`);
+			} catch (error: unknown) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+
+				throw new Error(`Parameter ${i + 1} (${param.name || 'unnamed'}): ${message}`);
 			}
 		}
 
@@ -135,16 +140,17 @@ export class ParameterBinder {
 				try {
 					value = this.resolveExpressions(value, inputData);
 				} catch (error) {
-					errors.push({
-						parameterIndex: i,
-						parameterName: param.name,
-						error: `Expression resolution failed: ${error.message}`,
-						expectedType: param.type || 'any',
-						actualType: typeof value,
-						value,
-					});
-					continue;
-				}
+						const errorMessage = error instanceof Error ? error.message : String(error);
+
+						errors.push({
+							parameterIndex: i,
+							parameterName: param.name,
+							error: `Expression resolution failed: ${errorMessage}`,
+							expectedType: param.type || 'any',
+							actualType: typeof value,
+							value,
+						});
+					}
 			}
 
 			// Type validation
@@ -154,7 +160,7 @@ export class ParameterBinder {
 			if (!this.isTypeCompatible(actualType, expectedType)) {
 				if (options.convertTypes) {
 					try {
-						value = this.convertType(value, expectedType);
+						value = this.convertType(value, expectedType, options); 
 						warnings.push({
 							parameterIndex: i,
 							parameterName: param.name,
@@ -162,15 +168,18 @@ export class ParameterBinder {
 							suggestion: 'Consider providing the correct type directly',
 						});
 					} catch (conversionError) {
+						const conversionMessage = conversionError instanceof Error ? conversionError.message : String(conversionError);
+
 						errors.push({
 							parameterIndex: i,
 							parameterName: param.name,
-							error: `Type conversion failed: ${conversionError.message}`,
+							error: `Type conversion failed: ${conversionMessage}`,
 							expectedType,
 							actualType,
 							value,
 						});
 					}
+
 				} else {
 					errors.push({
 						parameterIndex: i,
@@ -378,13 +387,16 @@ export class ParameterBinder {
 			case 'randomInt':
 				const max = parseInt(args[0]) || 100;
 				return Math.floor(Math.random() * max);
-			case 'formatDate':
-				const date = new Date(args || Date.now());
+			case 'formatDate': {
+				const date = new Date(args[0] || Date.now());
 				const format = args[1] || 'ISO';
 				return this.formatDate(date, format);
-			case 'length':
-				const value = this.resolvePropertyPath(args, data);
+			}
+			case 'length': {
+				if (!args[0]) return 0;
+				const value = this.resolvePropertyPath(args[0], data);
 				return Array.isArray(value) || typeof value === 'string' ? value.length : 0;
+			}
 			default:
 				return expression;
 		}
@@ -688,7 +700,7 @@ export class ParameterBinder {
 	}
 
 	private static getSQLType(paramType: ParameterType): number {
-		const Types = java.import('java.sql.Types');
+		const Types = java.javaImport('java.sql.Types');
 
 		switch (paramType) {
 			case 'string':
@@ -750,7 +762,7 @@ export class ParameterBinder {
 			case 'DATE':
 				return date.toISOString().split('T')[0];
 			case 'TIME':
-				return date.toISOString().split('T')[1].split('.');
+				return date.toISOString().split('T')[1].split('.')[0];
 			case 'EPOCH':
 				return date.getTime().toString();
 			default:
