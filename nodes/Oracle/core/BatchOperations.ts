@@ -112,19 +112,43 @@ export class BatchOperations {
 					if (progressCallback) {
 						progressCallback(totalProcessed, data.length, currentBatch + 1, totalBatches);
 					}
-				} catch (error) {
+				} catch (error: unknown) {
+					const message = error instanceof Error ? error.message : String(error);
+
 					failedBatches++;
 					const batchError: BatchError = {
 						batchIndex: currentBatch,
-						errorMessage: error.message || error.toString(),
+						errorMessage: message || message.toString(),
 						affectedRows: batch,
 					};
 
-					// Extrair informações adicionais do erro SQL
-					if (error.cause && error.cause.getSQLState) {
+					function isObject(x: unknown): x is Record<string, unknown> {
+						return typeof x === 'object' && x !== null;
+					}
+
+					type JavaCause = {
+						getSQLState?: () => string;
+						getErrorCode?: () => number;
+					};
+
+					function hasJavaCause(e: unknown): e is { cause: JavaCause } {
+						if (!isObject(e)) return false;
+						const cause = (e as any).cause;
+						return (
+							isObject(cause) &&
+							(typeof cause.getSQLState === 'function' || typeof cause.getErrorCode === 'function')
+						);
+					}
+
+					// Extrair informações adicionais do erro SQL (com type narrowing seguro)
+					if (hasJavaCause(error)) {
 						try {
-							batchError.sqlState = error.cause.getSQLState();
-							batchError.errorCode = error.cause.getErrorCode();
+							if (typeof error.cause.getSQLState === 'function') {
+								batchError.sqlState = error.cause.getSQLState();
+							}
+							if (typeof error.cause.getErrorCode === 'function') {
+								batchError.errorCode = error.cause.getErrorCode();
+							}
 						} catch {
 							// Ignorar se não conseguir extrair
 						}
@@ -271,11 +295,13 @@ export class BatchOperations {
 					if (progressCallback) {
 						progressCallback(totalProcessed, updates.length, currentBatch + 1, totalBatches);
 					}
-				} catch (error) {
+				} catch (error: unknown) {
+					const message = error instanceof Error ? error.message : String(error);
+
 					failedBatches++;
 					errors.push({
 						batchIndex: currentBatch,
-						errorMessage: error.message || error.toString(),
+						errorMessage: message || message.toString(),
 						affectedRows: batch,
 					});
 
@@ -414,11 +440,13 @@ export class BatchOperations {
 							totalBatches,
 						);
 					}
-				} catch (error) {
+				} catch (error:unknown) {
+					const message = error instanceof Error ? error.message : String(error);
+
 					failedBatches++;
 					errors.push({
 						batchIndex: currentBatch,
-						errorMessage: error.message || error.toString(),
+						errorMessage: message || message.toString(),
 						affectedRows: batch,
 					});
 
@@ -579,11 +607,13 @@ export class BatchOperations {
 					if (progressCallback) {
 						progressCallback(totalProcessed, data.length, currentBatch + 1, totalBatches);
 					}
-				} catch (error) {
+				} catch (error:unknown) {
+					const message = error instanceof Error ? error.message : String(error);
+
 					failedBatches++;
 					errors.push({
 						batchIndex: currentBatch,
-						errorMessage: error.message || error.toString(),
+						errorMessage: message || message.toString(),
 						affectedRows: batch,
 					});
 
