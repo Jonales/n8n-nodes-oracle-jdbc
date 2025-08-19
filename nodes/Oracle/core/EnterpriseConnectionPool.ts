@@ -1,7 +1,14 @@
 import * as java from 'java-bridge';
 import { v4 as uuidv4 } from 'uuid';
 
-import { JdbcConnection, OracleJdbcConfig, QueryOptions } from '../types/JdbcTypes';
+//import { JdbcConnection, OracleJdbcConfig, QueryOptions } from '../types/JdbcTypes';
+
+import {
+  JdbcConnection,
+  OracleJdbcConfig,
+  QueryOptions,
+  ConnectionLabel, // <- use este tipo
+} from '../types/JdbcTypes';
 
 import { ErrorContext, ErrorHandler } from '../utils/ErrorHandler';
 
@@ -264,7 +271,7 @@ export class EnterpriseConnectionPool {
 				isActive: true,
 				isPooled: true,
 				poolId: this.poolId,
-				labels: connectionLabels ? [connectionLabels] : undefined, //erro aqui
+				labels: connectionLabels ? [connectionLabels] : undefined,
 			};
 
 			// Track active connection
