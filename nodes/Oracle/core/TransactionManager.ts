@@ -476,8 +476,10 @@ export class TransactionManager {
 				issues,
 				warnings,
 			};
-		} catch (error) {
-			issues.push(`Error validating transaction: ${error.message}`);
+		} catch (error: unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			issues.push(`Error validating transaction: ${message}`);
 			return { isValid: false, issues, warnings };
 		}
 	}
@@ -511,8 +513,10 @@ export class TransactionManager {
 
 		try {
 			await this.connection.connection.rollback();
-		} catch (error) {
-			console.warn('Failed to rollback during force cleanup:', error.message);
+		} catch (error:unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			console.warn('Failed to rollback during force cleanup:', message);
 		}
 
 		await this.restoreConnectionState();
@@ -532,13 +536,15 @@ export class TransactionManager {
 			if (this.originalReadOnly !== undefined) {
 				await this.connection.connection.setReadOnly(this.originalReadOnly);
 			}
-		} catch (error) {
-			console.warn('Failed to restore connection state:', error.message);
+		} catch (error:unknown) {
+			const message = error instanceof Error ? error.message : String(error);
+
+			console.warn('Failed to restore connection state:', message);
 		}
 	}
 
 	private getIsolationLevel(level: string): number {
-		const Connection = java.import('java.sql.Connection');
+		const Connection = java.javaImport('java.sql.Connection');
 
 		switch (level) {
 			case 'READ_UNCOMMITTED':
@@ -555,7 +561,7 @@ export class TransactionManager {
 	}
 
 	private getIsolationLevelName(level: number): string {
-		const Connection = java.import('java.sql.Connection');
+		const Connection = java.javaImport('java.sql.Connection');
 
 		switch (level) {
 			case Connection.TRANSACTION_READ_UNCOMMITTED:
