@@ -1,3 +1,12 @@
+
+/**
+ * Oracle para n8n-nodes-oracle-jdbc
+ * Suporte para modo JDBC
+ *
+ * @author Jônatas Meireles Sousa Vieira
+ * @version 0.0.1-rc.1
+ */
+
 declare module 'java-bridge' {
   export const addClasspath: (path: string) => void;
   export const addClasspaths: (paths: string[]) => void;
